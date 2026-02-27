@@ -32,8 +32,8 @@ public final class RunResult {
         this.runId = runId;
         this.param = param;
         this.value = value;
-        this.unit = unit;
-        this.comment = comment;
+        this.setUnit(unit);
+        this.setComment(comment);
     }
 
     public long getId() {
@@ -73,14 +73,19 @@ public final class RunResult {
     }
 
     public void setUnit(String unit) {
+        if (unit == null || unit.isBlank()) {
+            throw new IllegalArgumentException("Единицы измерения не могут быть пустыми");
+        }
+        if (unit.length() > 16) {
+            throw new IllegalArgumentException("Единицы измерения не могут превышать 16 символов");
+        }
         this.unit = unit;
     }
 
-    public String getComment() {
-        return comment;
-    }
-
     public void setComment(String comment) {
+        if (comment != null && comment.length() > 128) {
+            throw new IllegalArgumentException("Комментарий не может превышать 128 символов");
+        }
         this.comment = comment;
     }
 }

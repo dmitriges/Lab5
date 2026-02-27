@@ -29,7 +29,7 @@ public final class Experiment {
       //TODO как сделать так чтобы сначала updatedAt принял значение createdAt, а далее уже свое значение времени обновления?
         this.updatedAt = updatedAt;
         this.createdAt = createdAt;
-        this.ownerUsername = ownerUsername;
+        this.setOwnerUsername(ownerUsername);
         this.setDescription(description);
         this.setName(name);
         this.id = id;
