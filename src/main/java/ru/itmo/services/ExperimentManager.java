@@ -14,7 +14,6 @@ public class ExperimentManager {
             return System.currentTimeMillis() + experiments.size();
         }
 
-
         public Experiment addExperiment(String name, String description, String ownerUsername) {
             long id = nextId++;
             Instant now = Instant.now();//

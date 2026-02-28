@@ -17,8 +17,17 @@ public class Main {
         RunResultManager runResultManager = new RunResultManager(runManager);
         SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
 
-        Experiment experiment = new Experiment(0L, Instant.now());
         long experimentId = experimentManager.getExperimentId();
+        Experiment experiment = new Experiment(experimentId, Instant.now());
+
+        experimentManager.addExperiment(experiment.getName(), experiment.getDescription(), experiment.getOwnerUsername());
+        List<Experiment> all = experimentManager.getAll();
+        all.forEach(System.out::println);
+
+
+
+
+
 
 
 
