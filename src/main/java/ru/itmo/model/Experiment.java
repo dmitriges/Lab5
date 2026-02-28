@@ -24,16 +24,23 @@ public final class Experiment {
         this.id = id;
         this.createdAt = createdAt;
     }
+    public Experiment(Instant updatedAt, Instant createdAt, String ownerUsername,
+                      String description, String name, long id) {
+        this(id, createdAt);           // <-- присваивает final поля
+        this.updatedAt = createdAt;    // на старте updatedAt = createdAt
 
-    public Experiment(Instant updatedAt, Instant createdAt, String ownerUsername, String description, String name, long id) {
-      //TODO как сделать так чтобы сначала updatedAt принял значение createdAt, а далее уже свое значение времени обновления?
-        this.updatedAt = updatedAt;
-        this.createdAt = createdAt;
+        // дальше — ИЛИ только validate + прямые присваивания,
+        // ИЛИ сеттеры, но тогда updatedAt будет прыгать
         this.setOwnerUsername(ownerUsername);
-        this.setDescription(description);
-        this.setName(name);
-        this.id = id;
+        this.setDescription(description == null ? "" : description);
+        // ВАЖНО: setName обновляет updatedAt — поэтому лучше:
+        validateName(name);
+        this.name = name;
+
+        // и в конце: updatedAt = createdAt (чтобы создание не считалось обновлением)
+        this.updatedAt = this.createdAt;
     }
+
 
     public long getId() {
         return id;
@@ -45,14 +52,18 @@ public final class Experiment {
     }
 
     public void setName(String name) {
+        validateName(name);
+        this.name = name;
+        this.updatedAt = Instant.now(); // Обновляем время только при реальном изменении через сеттер
+    }
+
+    private void validateName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Название эксперимента не может быть пустым");
         }
         if (name.length() > 128) {
             throw new IllegalArgumentException("Название эксперимента не может превышать 128 символов");
         }
-        this.name = name;
-        setUpdatedAt(Instant.now()); // автоматическое обновление даты изменения
     }
 
     public String getDescription() {
@@ -60,12 +71,15 @@ public final class Experiment {
     }
 
     public void setDescription(String description) {
-        if (description.length() <= 512){
-            this.description = description;
-        } else {
-            throw new IllegalArgumentException("Недопустимый формат для описания эксперимента");
+        if (description == null) {
+            throw new IllegalArgumentException("Ошибка: description не может быть null (используй пустую строку)");
         }
-        setUpdatedAt(Instant.now());
+        if (description.length() > 512) {
+            throw new IllegalArgumentException("Ошибка: description не может превышать 512 символов");
+        }
+
+        this.description = description;
+        this.updatedAt = Instant.now();
     }
 
     public String getOwnerUsername() {
