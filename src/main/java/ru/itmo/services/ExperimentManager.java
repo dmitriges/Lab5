@@ -4,16 +4,20 @@ import ru.itmo.model.Experiment;
 
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
-    public class ExperimentService {
-
+public class ExperimentManager {
         private final TreeMap<Long, Experiment> experiments = new TreeMap<>();
         private long nextId = 1;
 
-        public Experiment add(String name, String description, String ownerUsername) {
+
+        public long getExperimentId(){
+            return System.currentTimeMillis() + experiments.size();
+        }
+
+
+        public Experiment addExperiment(String name, String description, String ownerUsername) {
             long id = nextId++;
-            Instant now = Instant.now();
+            Instant now = Instant.now();//
 
             // Создаём объект с id/createdAt, дальше заполняем поля через сеттеры валидированные
             Experiment exp = new Experiment(id, now);
@@ -21,13 +25,11 @@ import java.util.stream.Collectors;
             // owner по ТЗ может быть SYSTEM на ранних этапах
             exp.setOwnerUsername(ownerUsername == null || ownerUsername.isBlank() ? "SYSTEM" : ownerUsername);
 
-            // description может быть пустым; если null — считаем пустым
             exp.setDescription(description == null ? "" : description);
 
             exp.setName(name);
 
-            // ВАЖНО: твой setName() трогает updatedAt (Instant.now()).
-            // Для "только что созданного" эксперимента логично updatedAt = createdAt.
+            // Для только что созданного эксперимента логично updatedAt = createdAt.
             exp.setUpdatedAt(exp.getCreatedAt());
 
             experiments.put(id, exp);

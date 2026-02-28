@@ -7,15 +7,15 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RunResultService {
+public class RunResultManager {
 
     private final TreeMap<Long, RunResult> results = new TreeMap<>();
     private long nextId = 1;
 
-    private final RunService runService;
+    private final RunManager runManager;
 
-    public RunResultService(RunService runService) {
-        this.runService = Objects.requireNonNull(runService);
+    public RunResultManager(RunManager runManager) {
+        this.runManager = Objects.requireNonNull(runManager);
     }
 
     public RunResult add(long runId,
@@ -24,7 +24,7 @@ public class RunResultService {
                          String unit,
                          String comment) {
 
-        if (!runService.exists(runId)) {
+        if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
         }
         if (param == null) {

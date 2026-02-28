@@ -5,19 +5,19 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RunService {
+public class RunManager {
 
     private final NavigableMap<Long, Run> runs = new TreeMap<>();
     private long nextId = 1;
 
-    private final ExperimentService experimentService;
+    private final ExperimentManager experimentManager;
 
-    public RunService(ExperimentService experimentService) {
-        this.experimentService = Objects.requireNonNull(experimentService);
+    public RunManager(ExperimentManager experimentManager) {
+        this.experimentManager = Objects.requireNonNull(experimentManager);
     }
 
     public Run add(long experimentId, String runName, String operatorName) {
-        if (!experimentService.exists(experimentId)) {
+        if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);
         }
 

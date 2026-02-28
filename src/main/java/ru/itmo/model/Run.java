@@ -1,5 +1,7 @@
 package ru.itmo.model;
 import java.time.Instant;
+import java.util.Objects;
+
 public final class Run {
     // Уникальный номер запуска. Программа назначает сама.
     private final long id;
@@ -70,5 +72,27 @@ public final class Run {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Run run)) return false;
+        return id == run.id && experimentId == run.experimentId && Objects.equals(name, run.name) && Objects.equals(operatorName, run.operatorName) && Objects.equals(createdAt, run.createdAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, experimentId, name, operatorName, createdAt);
+    }
+
+    @Override
+    public String toString() {
+        return "Run{" +
+                "id=" + id +
+                ", experimentId=" + experimentId +
+                ", name='" + name + '\'' +
+                ", operatorName='" + operatorName + '\'' +
+                ", createdAt=" + createdAt +
+                '}';
     }
 }

@@ -1,6 +1,7 @@
 package ru.itmo.model;
 
 import java.time.Instant;
+import java.util.Objects;
 
 public final class RunResult {
     // Уникальный номер результата. Программа назначает сама.
@@ -87,5 +88,29 @@ public final class RunResult {
             throw new IllegalArgumentException("Комментарий не может превышать 128 символов");
         }
         this.comment = comment;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof RunResult runResult)) return false;
+        return id == runResult.id && runId == runResult.runId && Double.compare(value, runResult.value) == 0 && Objects.equals(createdAt, runResult.createdAt) && param == runResult.param && Objects.equals(unit, runResult.unit) && Objects.equals(comment, runResult.comment);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, createdAt, runId, param, value, unit, comment);
+    }
+
+    @Override
+    public String toString() {
+        return "RunResult{" +
+                "id=" + id +
+                ", createdAt=" + createdAt +
+                ", runId=" + runId +
+                ", param=" + param +
+                ", value=" + value +
+                ", unit='" + unit + '\'' +
+                ", comment='" + comment + '\'' +
+                '}';
     }
 }

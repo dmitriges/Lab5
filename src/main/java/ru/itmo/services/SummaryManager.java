@@ -7,18 +7,18 @@ import ru.itmo.model.RunResult;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SummaryService {
+public class SummaryManager {
 
-    private final ExperimentService experimentService;
-    private final RunService runService;
-    private final RunResultService runResultService;
+    private final ExperimentManager experimentManager;
+    private final RunManager runManager;
+    private final RunResultManager runResultManager;
 
-    public SummaryService(ExperimentService experimentService,
-                          RunService runService,
-                          RunResultService runResultService) {
-        this.experimentService = Objects.requireNonNull(experimentService);
-        this.runService = Objects.requireNonNull(runService);
-        this.runResultService = Objects.requireNonNull(runResultService);
+    public SummaryManager(ExperimentManager experimentManager,
+                          RunManager runManager,
+                          RunResultManager runResultManager) {
+        this.experimentManager = Objects.requireNonNull(experimentManager);
+        this.runManager = Objects.requireNonNull(runManager);
+        this.runResultManager = Objects.requireNonNull(runResultManager);
     }
 
     /**
@@ -27,12 +27,12 @@ public class SummaryService {
      */
     public Map<MeasurementParam, ParamStats> expSummary(long experimentId) {
         // 1) Проверяем, что experiment существует (как в ТЗ "experiment не найден")
-        if (!experimentService.exists(experimentId)) {
+        if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);
         }
 
         // 2) Берем все runs этого эксперимента
-        List<Run> runs = runService.listByExperiment(experimentId);
+        List<Run> runs = runManager.listByExperiment(experimentId);
 
         // Если запусков нет — возвращаем пустую сводку
         if (runs.isEmpty()) {
@@ -42,7 +42,7 @@ public class SummaryService {
         // 3) Собираем все результаты со всех runs в один список
         List<RunResult> allResults = new ArrayList<>();
         for (Run run : runs) {
-            allResults.addAll(runResultService.listByRun(run.getId()));
+            allResults.addAll(runResultManager.listByRun(run.getId()));
         }
 
         if (allResults.isEmpty()) {

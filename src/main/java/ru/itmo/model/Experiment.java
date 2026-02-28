@@ -5,6 +5,7 @@ package ru.itmo.model;
 // и изменения вносить не нужно, поэтому разделять данные и валидацию не обязательно.
 
 import java.time.Instant;
+import java.util.Objects;
 
 public final class Experiment {
     // Уникальный номер эксперимента. Программа назначает сама.
@@ -26,18 +27,14 @@ public final class Experiment {
     }
     public Experiment(Instant updatedAt, Instant createdAt, String ownerUsername,
                       String description, String name, long id) {
-        this(id, createdAt);           // <-- присваивает final поля
+        this(id, createdAt);
         this.updatedAt = createdAt;    // на старте updatedAt = createdAt
 
-        // дальше — ИЛИ только validate + прямые присваивания,
-        // ИЛИ сеттеры, но тогда updatedAt будет прыгать
         this.setOwnerUsername(ownerUsername);
         this.setDescription(description == null ? "" : description);
-        // ВАЖНО: setName обновляет updatedAt — поэтому лучше:
         validateName(name);
         this.name = name;
 
-        // и в конце: updatedAt = createdAt (чтобы создание не считалось обновлением)
         this.updatedAt = this.createdAt;
     }
 
@@ -107,5 +104,31 @@ public final class Experiment {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    // переопределим equals hashcode  ToString
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof Experiment that)) return false;
+        return id == that.id && Objects.equals(createdAt, that.createdAt) && Objects.equals(name, that.name) && Objects.equals(description, that.description) && Objects.equals(ownerUsername, that.ownerUsername) && Objects.equals(updatedAt, that.updatedAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, createdAt, name, description, ownerUsername, updatedAt);
+    }
+
+    @Override
+    public String toString() {
+        return "Experiment{" +
+                "id=" + id +
+                ", createdAt=" + createdAt +
+                ", name='" + name + '\'' +
+                ", description='" + description + '\'' +
+                ", ownerUsername='" + ownerUsername + '\'' +
+                ", updatedAt=" + updatedAt +
+                '}';
     }
 }
