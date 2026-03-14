@@ -1,24 +1,10 @@
-import ru.itmo.model.Experiment;
-import ru.itmo.model.MeasurementParam;
-import ru.itmo.model.Run;
-import ru.itmo.model.RunResult;
-import ru.itmo.services.*;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import ru.itmo.cli.Cli;
 
 public class Main {
-
     public static void main(String[] args) {
-        ExperimentManager experimentManager = new ExperimentManager();
-        RunManager runManager = new RunManager(experimentManager);
-        RunResultManager runResultManager = new RunResultManager(runManager);
-        SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
-
-
-
+        new Cli().start();
+    }
+}
 
 
 
@@ -155,5 +141,4 @@ public class Main {
 
 
          */
-    }
-}
+
