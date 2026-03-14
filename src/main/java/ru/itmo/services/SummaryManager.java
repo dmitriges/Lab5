@@ -63,10 +63,10 @@ public class SummaryManager {
 
         // 4) Группируем по параметру
         Map<MeasurementParam, List<RunResult>> byParam = allResults.stream()
-                .collect(Collectors.groupingBy(RunResult::getParam));
+                .collect(Collectors.groupingBy(RunResult::getParam)); // для каждого RunResult взять его параметр измерения.
 
         // 5) Считаем count/min/max/avg для каждой группы
-        Map<MeasurementParam, ParamStats> summary = new EnumMap<>(MeasurementParam.class);
+        Map<MeasurementParam, ParamStats> summary = new EnumMap<>(MeasurementParam.class); // EnumMap — это реализация Map, оптимизированная для ключей типа enum. MeasurementParam.class — объект типа Class, содержащий информацию о перечислении. Он передаётся в конструктор EnumMap, чтобы Java знала тип enum-ключей и могла получить все его возможные значения.
 
         for (Map.Entry<MeasurementParam, List<RunResult>> entry : byParam.entrySet()) {
             MeasurementParam param = entry.getKey();
@@ -89,11 +89,10 @@ public class SummaryManager {
                     .average()
                     .orElse(Double.NaN);
 
+
             summary.put(param, new ParamStats(count, min, max, avg));
         }
 
-        // Возвращаем в удобном виде.
-        // EnumMap хранит ключи-перечисления компактно и быстро.
         return summary;
     }
 }
