@@ -1,51 +1,31 @@
 package ru.itmo.model;
+
 import java.time.Instant;
 import java.util.Objects;
 
 public final class Run {
-    // Уникальный номер запуска. Программа назначает сама.
     private final long id;
-
-    // К какому эксперименту относится (id эксперимента).
-    // Должен ссылаться на реально существующий Experiment.
     private final long experimentId;
-
-    // Название запуска reminder: “Run-2026-02-03-A”. Нельзя пустое. До 128 символов.
+    private final Instant createdAt;
     private String name;
-
-            // Кто выполнял запуск (логин или имя). Нельзя пустое. До 64 символов.
     private String operatorName;
 
-    // Когда запуск зарегистрирован. Программа ставит автоматически.
-    private final Instant createdAt;
-
-    public Run(long id, long experimentId, Instant createdAt) {
+    // Полный конструктор с валидацией через сеттеры
+    public Run(long id, long experimentId, String name, String operatorName, Instant createdAt) {
         this.id = id;
         this.experimentId = experimentId;
         this.createdAt = createdAt;
-    }
-
-    private Run(long id, long experimentId, String name, String operatorName, Instant createdAt) {
-        this.id = id;
-        this.experimentId = experimentId;
         this.setName(name);
         this.setOperatorName(operatorName);
-        this.createdAt = createdAt;
     }
 
+    public long getId() { return id; }
+    public long getExperimentId() { return experimentId; }
+    public String getName() { return name; }
+    public String getOperatorName() { return operatorName; }
+    public Instant getCreatedAt() { return createdAt; }
 
-    public long getId() {
-        return id;
-    }
-
-    public long getExperimentId() {
-        return experimentId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
+    // Сеттеры с валидацией
     public void setName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Название запуска не может быть пустым");
@@ -54,10 +34,6 @@ public final class Run {
             throw new IllegalArgumentException("Название запуска не может превышать 128 символов");
         }
         this.name = name;
-    }
-
-    public String getOperatorName() {
-        return operatorName;
     }
 
     public void setOperatorName(String operatorName) {
@@ -70,14 +46,14 @@ public final class Run {
         this.operatorName = operatorName;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
+    // equals, hashCode, toString
     @Override
     public boolean equals(Object o) {
         if (!(o instanceof Run run)) return false;
-        return id == run.id && experimentId == run.experimentId && Objects.equals(name, run.name) && Objects.equals(operatorName, run.operatorName) && Objects.equals(createdAt, run.createdAt);
+        return id == run.id && experimentId == run.experimentId
+                && Objects.equals(name, run.name)
+                && Objects.equals(operatorName, run.operatorName)
+                && Objects.equals(createdAt, run.createdAt);
     }
 
     @Override

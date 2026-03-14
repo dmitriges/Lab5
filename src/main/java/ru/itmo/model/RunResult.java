@@ -4,73 +4,54 @@ import java.time.Instant;
 import java.util.Objects;
 
 public final class RunResult {
-    // Уникальный номер результата. Программа назначает сама.
     private final long id;
-    // Когда добавили результат. Программа ставит автоматически.
     private final Instant createdAt;
-    // К какому запуску относится (id запуска).
-    // Должен ссылаться на реально существующий Run.
     private long runId;
-    // Что измеряли (PH/CONDUCTIVITY/NITRATE...). Выбирается из списка MeasurementParam.
     private MeasurementParam param;
-    // Числовое значение результата.
     private double value;
-    // Единицы (например "mg/L"). Нельзя пустое. До 16 символов.
     private String unit;
-    // Комментарий (например “after 60 min”). Можно пусто. До 128 символов.
     private String comment;
 
-
-
-    public RunResult(long id, Instant createdAt) {
-        this.id = id;
-        this.createdAt = createdAt;
-    }
-
+    // Полный конструктор с валидацией через сеттеры
     public RunResult(long id, Instant createdAt, long runId, MeasurementParam param, double value, String unit, String comment) {
         this.id = id;
         this.createdAt = createdAt;
-        this.runId = runId;
-        this.param = param;
-        this.value = value;
+        this.setRunId(runId);
+        this.setParam(param);
+        this.setValue(value);
         this.setUnit(unit);
         this.setComment(comment);
     }
 
-    public long getId() {
-        return id;
-    }
+    // Геттеры
+    public long getId() { return id; }
+    public Instant getCreatedAt() { return createdAt; }
+    public long getRunId() { return runId; }
+    public MeasurementParam getParam() { return param; }
+    public double getValue() { return value; }
+    public String getUnit() { return unit; }
+    public String getComment() { return comment; }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public long getRunId() {
-        return runId;
-    }
-
+    // Сеттеры с валидацией
     public void setRunId(long runId) {
+        if (runId <= 0) {
+            throw new IllegalArgumentException("ID запуска должен быть положительным числом");
+        }
         this.runId = runId;
     }
 
-    public MeasurementParam getParam() {
-        return param;
-    }
-
     public void setParam(MeasurementParam param) {
+        if (param == null) {
+            throw new IllegalArgumentException("Параметр измерения не может быть null");
+        }
         this.param = param;
     }
 
-    public double getValue() {
-        return value;
-    }
-
     public void setValue(double value) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Значение должно быть конечным числом");
+        }
         this.value = value;
-    }
-
-    public String getUnit() {
-        return unit;
     }
 
     public void setUnit(String unit) {
@@ -84,16 +65,25 @@ public final class RunResult {
     }
 
     public void setComment(String comment) {
-        if (comment != null && comment.length() > 128) {
+        if (comment == null) {
+            throw new IllegalArgumentException("Комментарий не может быть null (используйте пустую строку)");
+        }
+        if (comment.length() > 128) {
             throw new IllegalArgumentException("Комментарий не может превышать 128 символов");
         }
         this.comment = comment;
     }
 
+    // equals, hashCode, toString
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof RunResult runResult)) return false;
-        return id == runResult.id && runId == runResult.runId && Double.compare(value, runResult.value) == 0 && Objects.equals(createdAt, runResult.createdAt) && param == runResult.param && Objects.equals(unit, runResult.unit) && Objects.equals(comment, runResult.comment);
+        if (!(o instanceof RunResult that)) return false;
+        return id == that.id && runId == that.runId
+                && Double.compare(value, that.value) == 0
+                && Objects.equals(createdAt, that.createdAt)
+                && param == that.param
+                && Objects.equals(unit, that.unit)
+                && Objects.equals(comment, that.comment);
     }
 
     @Override

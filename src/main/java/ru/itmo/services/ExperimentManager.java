@@ -1,74 +1,57 @@
 package ru.itmo.services;
 
 import ru.itmo.model.Experiment;
-
 import java.time.Instant;
 import java.util.*;
 
 public class ExperimentManager {
-        private final TreeMap<Long, Experiment> experiments = new TreeMap<>();
-        private long nextId = 1;
+    private final TreeMap<Long, Experiment> experiments = new TreeMap<>();
+    private long nextId = 1;
 
+    private long generateId() {
+        return nextId++;
+    }
 
-        public long getExperimentId(){
-            return System.currentTimeMillis() + experiments.size();
+    public Experiment add(String name, String description, String ownerUsername) {
+        // Если ownerUsername не задан, используем "SYSTEM"
+        String owner = (ownerUsername == null || ownerUsername.isBlank()) ? "SYSTEM" : ownerUsername;
+        long id = generateId();
+        Instant now = Instant.now();
+        Experiment exp = new Experiment(id, name, description, owner, now);
+        experiments.put(id, exp);
+        return exp;
+    }
+
+    public Experiment getById(long id) {
+        Experiment exp = experiments.get(id);
+        if (exp == null) {
+            throw new NoSuchElementException("Experiment не найден: id=" + id);
         }
+        return exp;
+    }
 
-        public Experiment addExperiment(String name, String description, String ownerUsername) {
-            long id = nextId++;
-            Instant now = Instant.now();//
+    public List<Experiment> getAll() {
+        return new ArrayList<>(experiments.values());
+    }
 
-            // Создаём объект с id/createdAt, дальше заполняем поля через сеттеры валидированные
-            Experiment exp = new Experiment(id, now);
-
-            // owner по ТЗ может быть SYSTEM на ранних этапах
-            exp.setOwnerUsername(ownerUsername == null || ownerUsername.isBlank() ? "SYSTEM" : ownerUsername);
-
-            exp.setDescription(description == null ? "" : description);
-
-            exp.setName(name);
-
-            // Для только что созданного эксперимента логично updatedAt = createdAt.
-            exp.setUpdatedAt(exp.getCreatedAt());
-
-            experiments.put(id, exp);
-            return exp;
+    public Experiment update(long id, String newName, String newDescription) {
+        Experiment exp = getById(id);
+        if (newName != null) {
+            exp.setName(newName);
         }
-
-        public Experiment getById(long id) {
-            Experiment exp = experiments.get(id);
-            if (exp == null) {
-                throw new NoSuchElementException("Experiment не найден: id=" + id);
-            }
-            return exp;
+        if (newDescription != null) {
+            exp.setDescription(newDescription);
         }
-        // способ для того, чтобы получать данные поэтому ArrayList, tree map нам нужен для того, чтобы
-        // осуществлять сортировку по id
-        public List<Experiment> getAll() {
-            return new ArrayList<>(experiments.values()); // уже отсортировано по id
-        }
+        return exp;
+    }
 
-        public Experiment update(long id, String name, String description) {
-            Experiment exp = getById(id);
-
-            if (name != null) {
-                exp.setName(name);
-            }
-            if (description != null) {
-                exp.setDescription(description);
-            }
-            // updatedAt уже обновится внутри сеттеров
-            return exp;
-        }
-
-        public void remove(long id) {
-            if (experiments.remove(id) == null) {
-                throw new NoSuchElementException("Experiment не найден: id=" + id);
-            }
-        }
-
-        public boolean exists(long id) {
-            return experiments.containsKey(id);
+    public void remove(long id) {
+        if (experiments.remove(id) == null) {
+            throw new NoSuchElementException("Experiment не найден: id=" + id);
         }
     }
 
+    public boolean exists(long id) {
+        return experiments.containsKey(id);
+    }
+}

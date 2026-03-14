@@ -17,12 +17,6 @@ public class Main {
         RunResultManager runResultManager = new RunResultManager(runManager);
         SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
 
-        long experimentId = experimentManager.getExperimentId();
-        Experiment experiment = new Experiment(experimentId, Instant.now());
-
-        experimentManager.addExperiment(experiment.getName(), experiment.getDescription(), experiment.getOwnerUsername());
-        List<Experiment> all = experimentManager.getAll();
-        all.forEach(System.out::println);
 
 
 
@@ -31,6 +25,20 @@ public class Main {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 /*
         long expId = runAction("exp_create", () ->
                 experimentManager.addExperiment("Nitrate removal test", "batch adsorption series", "SYSTEM").getId()

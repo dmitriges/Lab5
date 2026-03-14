@@ -2,20 +2,21 @@ package ru.itmo.services;
 
 import ru.itmo.model.MeasurementParam;
 import ru.itmo.model.RunResult;
-
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class RunResultManager {
-
     private final TreeMap<Long, RunResult> results = new TreeMap<>();
     private long nextId = 1;
-
     private final RunManager runManager;
 
     public RunResultManager(RunManager runManager) {
         this.runManager = Objects.requireNonNull(runManager);
+    }
+
+    private long generateId() {
+        return nextId++;
     }
 
     public RunResult add(long runId,
@@ -23,30 +24,14 @@ public class RunResultManager {
                          double value,
                          String unit,
                          String comment) {
-
         if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
         }
-        if (param == null) {
-            throw new IllegalArgumentException("Ошибка: param не может быть null");
-        }
-        if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException("Ошибка: value должно быть конечным числом");
-        }
-
-        long id = nextId++;
+        // Преобразуем null комментарий в пустую строку (сеттер требует не null)
+        String safeComment = comment == null ? "" : comment;
+        long id = generateId();
         Instant now = Instant.now();
-
-        RunResult rr = new RunResult(
-                id,
-                now,
-                runId,
-                param,
-                value,
-                unit,
-                comment == null ? "" : comment
-        );
-
+        RunResult rr = new RunResult(id, now, runId, param, value, unit, safeComment);
         results.put(id, rr);
         return rr;
     }
@@ -87,32 +72,19 @@ public class RunResultManager {
                             Double value,
                             String unit,
                             String comment) {
-
-        RunResult rr = getById(resultId); // если нет — NoSuchElementException
-
-        // param: null = не менять
+        RunResult rr = getById(resultId);
         if (param != null) {
-            rr.setParam(param); // рекомендую добавить в домене проверку param != null
+            rr.setParam(param);
         }
-
-        // value: Double, чтобы можно было передать null ("не менять")
         if (value != null) {
-            if (!Double.isFinite(value)) {
-                throw new IllegalArgumentException("Ошибка: value должно быть конечным числом");
-            }
-            rr.setValue(value); // в домене можно тоже проверять finiteness
+            rr.setValue(value);
         }
-
-        // unit: null = не менять
         if (unit != null) {
-            rr.setUnit(unit); // твоя валидация (не пусто, <=16)
+            rr.setUnit(unit);
         }
-
-        // comment: null = не менять (или можно null -> "", как решишь)
         if (comment != null) {
-            rr.setComment(comment); // твоя валидация (<=128)
+            rr.setComment(comment);
         }
-
         return rr;
     }
 }

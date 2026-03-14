@@ -7,6 +7,21 @@ import ru.itmo.model.RunResult;
 import java.util.*;
 import java.util.stream.Collectors;
 
+//класс отвечающий за сводку по эксперименту посредством команды expSummary
+//Как он работает?
+//Принимает experimentId.
+//
+//Проверяет существование эксперимента через ExperimentManager.exists().
+//
+//Получает все запуски этого эксперимента через RunManager.listByExperiment().
+//
+//Собирает все результаты этих запусков через RunResultManager.listByRun().
+//
+//Группирует результаты по параметру (MeasurementParam).
+//
+//Для каждой группы вычисляет count, min, max, avg.
+//
+//Возвращает карту (Map<MeasurementParam, ParamStats>), где ParamStats – это record с полями статистики.
 public class SummaryManager {
 
     private final ExperimentManager experimentManager;
@@ -21,10 +36,7 @@ public class SummaryManager {
         this.runResultManager = Objects.requireNonNull(runResultManager);
     }
 
-    /**
-     * exp_summary <experimentId>
-     * Возвращает: по каждому MeasurementParam -> count/min/max/avg по всем runs эксперимента.
-     */
+
     public Map<MeasurementParam, ParamStats> expSummary(long experimentId) {
         // 1) Проверяем, что experiment существует (как в ТЗ "experiment не найден")
         if (!experimentManager.exists(experimentId)) {
