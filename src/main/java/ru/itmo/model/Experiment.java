@@ -1,9 +1,15 @@
 package ru.itmo.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
-public final class Experiment {
+public final class Experiment implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     private final long id;
     private final Instant createdAt;
     private String name;
@@ -11,22 +17,27 @@ public final class Experiment {
     private String ownerUsername;
     private Instant updatedAt;
 
-    // Конструктор только с id и createdAt (для случаев, когда данные будут заполняться сеттерами позже)
     public Experiment(long id, Instant createdAt) {
         this.id = id;
         this.createdAt = createdAt;
-        this.updatedAt = createdAt; // изначально равно createdAt
+        this.updatedAt = createdAt;
     }
 
-    // полный конструктор с валидацией через сеттеры
-    public Experiment(long id, String name, String description, String ownerUsername, Instant createdAt) {
+    @JsonCreator
+    public Experiment(
+            @JsonProperty("id") long id,
+            @JsonProperty("name") String name,
+            @JsonProperty("description") String description,
+            @JsonProperty("ownerUsername") String ownerUsername,
+            @JsonProperty("createdAt") Instant createdAt,
+            @JsonProperty("updatedAt") Instant updatedAt
+    ) {
         this.id = id;
         this.createdAt = createdAt;
-        // Используем сеттеры для валидации
-        this.setName(name);
-        this.setDescription(description);
-        this.setOwnerUsername(ownerUsername);
-        this.updatedAt = createdAt; // после всех проверок устанавливаем updatedAt = createdAt
+        this.name = name;
+        this.description = description;
+        this.ownerUsername = ownerUsername;
+        this.updatedAt = updatedAt;
     }
 
     public long getId() { return id; }
@@ -36,7 +47,6 @@ public final class Experiment {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 
-    // Сеттеры с валидацией и обновлением updatedAt
     public void setName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Название эксперимента не может быть пустым");
