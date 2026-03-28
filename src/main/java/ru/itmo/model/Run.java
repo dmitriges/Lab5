@@ -2,6 +2,8 @@ package ru.itmo.model;
 
 import java.time.Instant;
 import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public final class Run {
     private final long id;
@@ -10,8 +12,14 @@ public final class Run {
     private String name;
     private String operatorName;
 
-    // Полный конструктор с валидацией через сеттеры
-    public Run(long id, long experimentId, String name, String operatorName, Instant createdAt) {
+    @JsonCreator
+    public Run(
+            @JsonProperty("id") long id,
+            @JsonProperty("experimentId") long experimentId,
+            @JsonProperty("name") String name,
+            @JsonProperty("operatorName") String operatorName,
+            @JsonProperty("createdAt") Instant createdAt
+    ) {
         this.id = id;
         this.experimentId = experimentId;
         this.createdAt = createdAt;

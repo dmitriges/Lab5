@@ -4,6 +4,7 @@ import ru.itmo.cli.commands.*;
 import ru.itmo.services.*;
 
 import java.util.Scanner;
+import ru.itmo.storage.FileStorage;
 
 
 public class Cli {
@@ -18,6 +19,7 @@ public class Cli {
         RunManager runManager = new RunManager(experimentManager);
         RunResultManager runResultManager = new RunResultManager(runManager);
         SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
+        FileStorage fileStorage = new FileStorage(experimentManager, runManager, runResultManager);
 
         // Реестр команд
         //Каждая команда получает необходимые ей зависимости
@@ -41,6 +43,8 @@ public class Cli {
         registry.register("res_add", new ResAddCommand(runResultManager, runManager));
         registry.register("res_list", new ResListCommand(runResultManager));
         registry.register("exp_summary", new ExpSummaryCommand(summaryManager));
+        registry.register("save", new SaveCommand(fileStorage));
+        registry.register("load", new LoadCommand(fileStorage));
 
         scanner = new Scanner(System.in);
         //Создание Scanner для последующего чтения ввода.

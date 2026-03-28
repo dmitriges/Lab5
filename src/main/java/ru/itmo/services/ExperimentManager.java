@@ -30,8 +30,26 @@ public class ExperimentManager {
         return exp;
     }
 
+    public void importData(java.util.List<Experiment> loadedExperiments) {
+        experiments.clear();
+
+        long maxId = 0;
+        for (Experiment experiment : loadedExperiments) {
+            experiments.put(experiment.getId(), experiment);
+            if (experiment.getId() > maxId) {
+                maxId = experiment.getId();
+            }
+        }
+
+        nextId = maxId + 1;
+    }
+
     public List<Experiment> getAll() {
         return new ArrayList<>(experiments.values());
+    }
+
+    public java.util.Map<Long, Experiment> exportData() {
+        return new java.util.LinkedHashMap<>(experiments);
     }
 
     public Experiment update(long id, String newName, String newDescription) {

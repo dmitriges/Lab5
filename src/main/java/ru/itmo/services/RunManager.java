@@ -76,6 +76,24 @@ public class RunManager {
     //    return result;
     //}
 
+    public java.util.Map<Long, Run> exportData() {
+        return new java.util.LinkedHashMap<>(runs);
+    }
+
+    public void importData(java.util.List<Run> loadedRuns) {
+        runs.clear();
+
+        long maxId = 0;
+        for (Run run : loadedRuns) {
+            runs.put(run.getId(), run);
+            if (run.getId() > maxId) {
+                maxId = run.getId();
+            }
+        }
+
+        nextId = maxId + 1;
+    }
+
     //Возвращает последние n запусков эксперимента (сортировка по убыванию даты создания)
     public List<Run> listLastByExperiment(long experimentId, int n) {
         if (n <= 0) return List.of();// если запросил 0 или меньше последних - возвращаем пустой лист

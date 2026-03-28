@@ -67,6 +67,24 @@ public class RunResultManager {
                 .collect(Collectors.toList());
     }
 
+    public java.util.Map<Long, RunResult> exportData() {
+        return new java.util.LinkedHashMap<>(results);
+    }
+
+    public void importData(java.util.List<RunResult> loadedResults) {
+        results.clear();
+
+        long maxId = 0;
+        for (RunResult result : loadedResults) {
+            results.put(result.getId(), result);
+            if (result.getId() > maxId) {
+                maxId = result.getId();
+            }
+        }
+
+        nextId = maxId + 1;
+    }
+
     public RunResult update(long resultId,
                             MeasurementParam param,
                             Double value,
