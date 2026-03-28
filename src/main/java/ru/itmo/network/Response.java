@@ -7,7 +7,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import ru.itmo.model.Experiment;
 import ru.itmo.model.Run;
 import ru.itmo.model.RunResult;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
+@JacksonXmlRootElement(localName = "response")
+// делает XML нормальным
+//избавляет от кривых корневых тегов
 public class Response {
     private final boolean success;
     private final String message;

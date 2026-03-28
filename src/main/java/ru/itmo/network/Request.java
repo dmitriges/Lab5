@@ -9,7 +9,11 @@ import ru.itmo.network.dto.RunAddData;
 import ru.itmo.network.dto.RunResultAddData;
 
 import java.util.List;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
+@JacksonXmlRootElement(localName = "request")
+//делает XML нормальным
+//избавляет от кривых корневых тегов
 public class Request {
     private final String commandName;
     private final List<String> args;
