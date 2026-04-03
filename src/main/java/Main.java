@@ -6,25 +6,6 @@ public class Main {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
 /*
         long expId = runAction("exp_create", () ->
                 experimentManager.addExperiment("Nitrate removal test", "batch adsorption series", "SYSTEM").getId()

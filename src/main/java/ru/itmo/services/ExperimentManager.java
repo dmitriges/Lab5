@@ -69,6 +69,11 @@ public class ExperimentManager {
         }
     }
 
+    public void clear() {
+        experiments.clear();
+        nextId = 1;
+    }
+
     public boolean exists(long id) {
         return experiments.containsKey(id);
     }

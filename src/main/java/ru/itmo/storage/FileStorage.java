@@ -1,6 +1,6 @@
 package ru.itmo.storage;
 
-import ru.itmo.network.DataMapper;
+import ru.itmo.storage.DataMapper;
 import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
 import ru.itmo.services.RunResultManager;

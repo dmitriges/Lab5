@@ -105,4 +105,9 @@ public class RunResultManager {
         }
         return rr;
     }
+
+    public void clear() {
+        results.clear();
+        nextId = 1;
+    }
 }

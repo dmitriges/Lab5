@@ -117,4 +117,9 @@ public class RunManager {
         }
         return run;
     }
+
+    public void clear() {
+        runs.clear();
+        nextId = 1;
+    }
 }
