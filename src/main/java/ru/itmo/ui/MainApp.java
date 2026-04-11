@@ -51,7 +51,7 @@ public class MainApp extends Application { //приложение на осно�
 
     private <T> void runAsyncTask(javafx.concurrent.Task<T> task, Runnable onSuccess, String successMessage) {
         if (currentTask != null && !currentTask.isDone()) {
-            AlertUtil.showError("Предыдущая операция ещё не завершена. Подождите.");
+            AlertUtil.showError("Предыдущая операция ещё не завершена. Подождите."); //Если сейчас уже идёт одна фоновая операция, вторую запускать нельзя.
             return;
         }
         currentTask = task;
@@ -59,7 +59,7 @@ public class MainApp extends Application { //приложение на осно�
         disableToolbarButtons(true);
         progressBar.setVisible(true);
         statusLabel.setVisible(true);
-        progressBar.progressProperty().bind(task.progressProperty());
+        progressBar.progressProperty().bind(task.progressProperty()); //Пусть progressBar автоматически показывает тот прогресс, который сообщает task
         statusLabel.textProperty().bind(task.messageProperty());
 
         task.setOnSucceeded(e -> {
@@ -69,7 +69,7 @@ public class MainApp extends Application { //приложение на осно�
         });
         task.setOnFailed(e -> {
             Throwable ex = task.getException();
-            AlertUtil.showError("Ошибка: " + (ex != null ? ex.getMessage() : "неизвестная ошибка"));
+            AlertUtil.showError("Ошибка: " + (ex != null ? ex.getMessage() : "неизвестная ошибка")); //если ex != null, взять ex.getMessage() иначе показать "неизвестная ошибка"
             finishAsyncTask();
         });
         new Thread(task).start();
