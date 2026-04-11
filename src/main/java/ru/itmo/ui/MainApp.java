@@ -29,9 +29,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-public class MainApp extends Application {
+public class MainApp extends Application { //приложение на основе java-fx
 
-    private static final Path DEFAULT_XML_PATH = Path.of("data.xml");
+    private static final Path DEFAULT_XML_PATH = Path.of("data.xml"); //стандартный XML-файл, с которым приложение работает по умолчанию.
 
     private final ExperimentManager experimentManager = new ExperimentManager();
     private final RunManager runManager = new RunManager(experimentManager);
