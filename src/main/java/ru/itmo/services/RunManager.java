@@ -77,7 +77,7 @@ public class RunManager {
     //}
 
     public java.util.Map<Long, Run> exportData() {
-        return new java.util.LinkedHashMap<>(runs);
+        return new java.util.TreeMap<>(runs);
     }
 
     public void importData(java.util.List<Run> loadedRuns) {

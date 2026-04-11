@@ -29,10 +29,12 @@ public class ExperimentManager {
         }
         return exp;
     }
-
+// принимает лист загруженных экспериментов
     public void importData(java.util.List<Experiment> loadedExperiments) {
         experiments.clear();
+        // очищает текущее значение поля experiment в experimentManager
 
+        //
         long maxId = 0;
         for (Experiment experiment : loadedExperiments) {
             experiments.put(experiment.getId(), experiment);
@@ -48,8 +50,9 @@ public class ExperimentManager {
         return new ArrayList<>(experiments.values());
     }
 
+
     public java.util.Map<Long, Experiment> exportData() {
-        return new java.util.LinkedHashMap<>(experiments);
+        return new java.util.TreeMap<>(experiments);
     }
 
     public Experiment update(long id, String newName, String newDescription) {
