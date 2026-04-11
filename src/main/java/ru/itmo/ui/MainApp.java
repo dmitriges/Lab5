@@ -33,6 +33,10 @@ public class MainApp extends Application {
 
     private static final Path DEFAULT_XML_PATH = Path.of("data.xml");
 
+    private final javafx.scene.control.ProgressBar progressBar = new javafx.scene.control.ProgressBar();
+    private final javafx.scene.control.Label statusLabel = new javafx.scene.control.Label("Готов");
+    private javafx.concurrent.Task<?> currentTask;
+
     private final ExperimentManager experimentManager = new ExperimentManager();
     private final RunManager runManager = new RunManager(experimentManager);
     private final RunResultManager runResultManager = new RunResultManager(runManager);
@@ -44,24 +48,73 @@ public class MainApp extends Application {
 
     private final TableView<Experiment> tableView = new TableView<>();
 
+
+    private <T> void runAsyncTask(javafx.concurrent.Task<T> task, Runnable onSuccess, String successMessage) {
+        if (currentTask != null && !currentTask.isDone()) {
+            AlertUtil.showError("Предыдущая операция ещё не завершена. Подождите.");
+            return;
+        }
+        currentTask = task;
+        // Блокируем все кнопки на тулбаре (чтобы не нажали повторно)
+        disableToolbarButtons(true);
+        progressBar.setVisible(true);
+        statusLabel.setVisible(true);
+        progressBar.progressProperty().bind(task.progressProperty());
+        statusLabel.textProperty().bind(task.messageProperty());
+
+        task.setOnSucceeded(e -> {
+            if (onSuccess != null) onSuccess.run();
+            if (successMessage != null) AlertUtil.showInfo(successMessage);
+            finishAsyncTask();
+        });
+        task.setOnFailed(e -> {
+            Throwable ex = task.getException();
+            AlertUtil.showError("Ошибка: " + (ex != null ? ex.getMessage() : "неизвестная ошибка"));
+            finishAsyncTask();
+        });
+        new Thread(task).start();
+    }
+
+    private void finishAsyncTask() {
+        disableToolbarButtons(false);
+        progressBar.setVisible(false);
+        statusLabel.setVisible(false);
+        progressBar.progressProperty().unbind();
+        statusLabel.textProperty().unbind();
+        currentTask = null;
+    }
+
+    private void disableToolbarButtons(boolean disable) {
+        // Находим тулбар (можно сохранить ссылку при создании)
+        // Предположим, что сохранили в поле ToolBar toolbar;
+        if (toolbar != null) {
+            toolbar.getItems().forEach(node -> node.setDisable(disable));
+        }
+    }
+    private ToolBar toolbar; // поле класса
+
     @Override
     public void start(Stage stage) {
         BorderPane root = new BorderPane();
-
         configureTable();
-        loadDefaultFileOnStart();
+        // статусная панель внизу
+        javafx.scene.layout.HBox statusBox = new javafx.scene.layout.HBox(10, statusLabel, progressBar);
+        statusBox.setStyle("-fx-padding: 5;");
+        progressBar.setVisible(false);
+        statusLabel.setVisible(false);
+        root.setBottom(statusBox);
 
-        ToolBar toolBar = createToolBar(stage);
-
-        root.setTop(toolBar);
+        toolbar = createToolBar(stage); // сохраняем
+        root.setTop(toolbar);
         root.setCenter(tableView);
-
         refreshTable();
 
         Scene scene = new Scene(root, 1200, 650);
         stage.setTitle("Experiment Manager");
         stage.setScene(scene);
         stage.show();
+
+        loadDefaultFileOnStartAsync(); // загружаем асинхронно
     }
 
     private void configureTable() {
@@ -230,63 +283,88 @@ public class MainApp extends Application {
     }
 
     private void saveDefaultFile() {
-        try {
-            fileStorage.save(DEFAULT_XML_PATH);
-            AlertUtil.showInfo("Данные сохранены в data.xml");
-        } catch (Exception e) {
-            AlertUtil.showError("Ошибка сохранения: " + e.getMessage());
-        }
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Сохранение в data.xml...");
+                fileStorage.save(DEFAULT_XML_PATH);
+                updateMessage("Сохранено");
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> AlertUtil.showInfo("Данные сохранены в data.xml"));
+        task.setOnFailed(e -> AlertUtil.showError("Ошибка сохранения: " + task.getException().getMessage()));
+        new Thread(task).start();
     }
 
     private void saveAs(Stage stage) {
         FileChooser fileChooser = createXmlFileChooser("Сохранить XML");
         File file = fileChooser.showSaveDialog(stage);
-        if (file == null) {
-            return;
-        }
-
-        try {
-            fileStorage.save(file.toPath());
-            AlertUtil.showInfo("Данные сохранены в файл: " + file.getAbsolutePath());
-        } catch (Exception e) {
-            AlertUtil.showError("Ошибка сохранения: " + e.getMessage());
-        }
+        if (file == null) return;
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Сохранение в " + file.getName());
+                fileStorage.save(file.toPath());
+                updateMessage("Сохранено");
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> AlertUtil.showInfo("Данные сохранены в файл: " + file.getAbsolutePath()));
+        task.setOnFailed(e -> AlertUtil.showError("Ошибка сохранения: " + task.getException().getMessage()));
+        new Thread(task).start();
     }
 
     private void loadDefaultFile() {
-        try {
-            fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
-            AlertUtil.showInfo("Данные загружены из data.xml. Нажмите Refresh для обновления таблицы.");
-        } catch (Exception e) {
-            AlertUtil.showError("Ошибка загрузки: " + e.getMessage());
-        }
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Загрузка из data.xml...");
+                fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
+                updateMessage("Загрузка завершена");
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> AlertUtil.showInfo("Данные загружены из data.xml. Нажмите Refresh."));
+        task.setOnFailed(e -> AlertUtil.showError("Ошибка загрузки: " + task.getException().getMessage()));
+        new Thread(task).start();
     }
 
     private void loadFrom(Stage stage) {
         FileChooser fileChooser = createXmlFileChooser("Загрузить XML");
         File file = fileChooser.showOpenDialog(stage);
-        if (file == null) {
-            return;
-        }
-
-        try {
-            fileStorage.loadIntoManagers(file.toPath());
-            AlertUtil.showInfo("Данные загружены из файла: " + file.getAbsolutePath() + ". Нажмите Refresh для обновления таблицы.");
-        } catch (Exception e) {
-            AlertUtil.showError("Ошибка загрузки: " + e.getMessage());
-        }
+        if (file == null) return;
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Загрузка из " + file.getName());
+                fileStorage.loadIntoManagers(file.toPath());
+                updateMessage("Загрузка завершена");
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> AlertUtil.showInfo("Данные загружены из файла: " + file.getAbsolutePath() + ". Нажмите Refresh."));
+        task.setOnFailed(e -> AlertUtil.showError("Ошибка загрузки: " + task.getException().getMessage()));
+        new Thread(task).start();
     }
 
-    private void loadDefaultFileOnStart() {
-        if (!Files.exists(DEFAULT_XML_PATH)) {
-            return;
-        }
-
-        try {
-            fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
-        } catch (Exception e) {
-            AlertUtil.showError("Ошибка загрузки при старте: " + e.getMessage());
-        }
+    private void loadDefaultFileOnStartAsync() {
+        if (!Files.exists(DEFAULT_XML_PATH)) return;
+        javafx.concurrent.Task<Void> task = new javafx.concurrent.Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                updateMessage("Загрузка данных при старте...");
+                fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
+                updateMessage("Загрузка завершена");
+                return null;
+            }
+        };
+        task.setOnSucceeded(e -> {
+            // Обновлять таблицу не нужно, так как пользователь сам нажмёт Refresh
+            AlertUtil.showInfo("Данные загружены из data.xml. Нажмите Refresh.");
+        });
+        task.setOnFailed(e -> AlertUtil.showError("Ошибка загрузки при старте: " + task.getException().getMessage()));
+        new Thread(task).start();
     }
 
     private FileChooser createXmlFileChooser(String title) {
