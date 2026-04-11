@@ -30,13 +30,13 @@ public final class FileValidator {
         for (Experiment experiment : experiments) {
             if (experiment == null) {
                 throw new IllegalArgumentException("Обнаружен null в experiments");
-            }
+            }// проверяет на отсутствие null
 
-            validateExperiment(experiment);
+            validateExperiment(experiment);//проверка полей
 
             if (!experimentIds.add(experiment.getId())) {
                 throw new IllegalArgumentException("Дублирующийся id Experiment: " + experiment.getId());
-            }
+            } //исключение на дубликат, если совпадает
         }
 
         Set<Long> runIds = new HashSet<>();
@@ -89,6 +89,7 @@ public final class FileValidator {
             throw new IllegalArgumentException("updatedAt у Experiment не может быть null");
         }
 
+        //вызываем сеттеры для валидации строковых полей
         experiment.setName(experiment.getName());
         experiment.setDescription(experiment.getDescription());
         experiment.setOwnerUsername(experiment.getOwnerUsername());
