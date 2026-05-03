@@ -19,19 +19,24 @@ public class RunResultManager {
         return nextId++;
     }
 
-    public RunResult add(long runId, MeasurementParam param,double value, String unit, String comment) {
+    public RunResult add(long runId, MeasurementParam param, double value, String unit,
+                         String comment, String ownerUsername) {
         if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
         }
-        // Преобразуем null комментарий в пустую строку (сеттер требует не null)
         String safeComment = comment == null ? "" : comment;
         long id = generateId();
         Instant now = Instant.now();
-        RunResult rr = new RunResult(id, now, runId, param, value, unit, safeComment);
+        RunResult rr = new RunResult(id, now, runId, param, value, unit, safeComment, ownerUsername);
         results.put(id, rr);
         return rr;
     }
-
+    public void ensureOwnership(long resultId, String requester) {
+        RunResult rr = getById(resultId);
+        if (!rr.getOwnerUsername().equals(requester)) {
+            throw new SecurityException("У вас нет прав на изменение этого результата.");
+        }
+    }
     public RunResult getById(long id) {
         RunResult rr = results.get(id);
         if (rr == null) {
@@ -44,7 +49,8 @@ public class RunResultManager {
         return new ArrayList<>(results.values());
     }
 
-    public void remove(long id) {
+    public void remove(long id, String requester) {
+        ensureOwnership(id, requester);
         if (results.remove(id) == null) {
             throw new NoSuchElementException("RunResult не найден: id=" + id);
         }
@@ -81,29 +87,18 @@ public class RunResultManager {
         nextId = maxId + 1;
     }
 
-    public RunResult update(long resultId,
-                            MeasurementParam param,
-                            Double value,
-                            String unit,
-                            String comment) {
+    public RunResult update(long resultId, MeasurementParam param, Double value,
+                            String unit, String comment, String requester) {
+        ensureOwnership(resultId, requester);
         RunResult rr = getById(resultId);
-        if (param != null) {
-            rr.setParam(param);
-        }
-        if (value != null) {
-            rr.setValue(value);
-        }
-        if (unit != null) {
-            rr.setUnit(unit);
-        }
-        if (comment != null) {
-            rr.setComment(comment);
-        }
+        if (param != null) rr.setParam(param);
+        if (value != null) rr.setValue(value);
+        if (unit != null) rr.setUnit(unit);
+        if (comment != null) rr.setComment(comment);
         return rr;
     }
 
-    public void clear() {
-        results.clear();
-        nextId = 1;
+    public void clearByOwner(String owner) {
+        results.values().removeIf(rr -> rr.getOwnerUsername() != null && rr.getOwnerUsername().equals(owner));
     }
 }

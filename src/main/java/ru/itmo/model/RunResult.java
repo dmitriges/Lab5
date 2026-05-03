@@ -13,8 +13,9 @@ public final class RunResult {
     private double value;
     private String unit;
     private String comment;
+    private String ownerUsername;
 
-    public RunResult(long id, Instant createdAt, String comment, String unit, double value, MeasurementParam param, long runId) {
+    public RunResult(long id, Instant createdAt, String comment, String unit, double value, MeasurementParam param, long runId, String ownerUsername) {
         this.id = id;
         this.createdAt = createdAt;
         this.setParam(param);
@@ -22,6 +23,7 @@ public final class RunResult {
         this.setUnit(unit);
         this.setComment(comment);
         this.runId = runId;
+        this.setOwnerUsername(ownerUsername);
     }
 
     @JsonCreator
@@ -32,7 +34,8 @@ public final class RunResult {
             @JsonProperty("param") MeasurementParam param,
             @JsonProperty("value") double value,
             @JsonProperty("unit") String unit,
-            @JsonProperty("comment") String comment
+            @JsonProperty("comment") String comment,
+            @JsonProperty("ownerUsername") String ownerUsername
     ) {
         this.id = id;
         this.createdAt = createdAt;
@@ -41,7 +44,45 @@ public final class RunResult {
         this.unit = unit;
         this.value = value;
         this.param = param;
+        this.ownerUsername = ownerUsername != null ? ownerUsername : "SYSTEM";
     }
+
+    // Статический метод
+    // Проверка ограничений полей без вызова сеттера, чтобы updatedAt не было равным времени загрузки,
+    // а было действительно временем обновления, аналогичные поля в других классах пакета model
+    public static void validateFields(MeasurementParam param, double value, String unit, String comment) {
+        if (param == null) {
+            throw new IllegalArgumentException("Параметр измерения не может быть null");
+        }
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Значение должно быть конечным числом");
+        }
+        if (unit == null || unit.isBlank()) {
+            throw new IllegalArgumentException("Единицы измерения не могут быть пустыми");
+        }
+        if (unit.length() > 16) {
+            throw new IllegalArgumentException("Единицы измерения не могут превышать 16 символов");
+        }
+        if (comment == null) {
+            throw new IllegalArgumentException("Комментарий не может быть null");
+        }
+        if (comment.length() > 128) {
+            throw new IllegalArgumentException("Комментарий не может превышать 128 символов");
+        }
+    }
+    public String getOwnerUsername() { return ownerUsername; }
+
+    public void setOwnerUsername(String ownerUsername) {
+        if (ownerUsername == null || ownerUsername.isBlank()) {
+            throw new IllegalArgumentException("Владелец не может быть пустым");
+        }
+        if (ownerUsername.length() > 64) {
+            throw new IllegalArgumentException("Слишком длинный владелец");
+        }
+        this.ownerUsername = ownerUsername;
+    }
+
+
 
     // Геттеры
     public long getId() { return id; }

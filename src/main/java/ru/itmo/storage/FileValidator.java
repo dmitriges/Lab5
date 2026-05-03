@@ -10,6 +10,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 public final class FileValidator {
+    // TODO нужен ли он вообще? ( метод FileValidator )
     private FileValidator() {
     }
 
@@ -89,10 +90,10 @@ public final class FileValidator {
             throw new IllegalArgumentException("updatedAt у Experiment не может быть null");
         }
 
-        //вызываем сеттеры для валидации строковых полей
-        experiment.setName(experiment.getName());
-        experiment.setDescription(experiment.getDescription());
-        experiment.setOwnerUsername(experiment.getOwnerUsername());
+        // Валидация, так чтобы updatedAt корректно обновлялся - теперь не вызываем сеттеры,
+        // которые обновляют, а через отдельные методы валидируем.
+        Experiment.validateFields(experiment.getName(), experiment.getDescription(), experiment.getOwnerUsername());
+
     }
 
     private static void validateRun(Run run) {
@@ -105,9 +106,9 @@ public final class FileValidator {
         if (run.getCreatedAt() == null) {
             throw new IllegalArgumentException("createdAt у Run не может быть null");
         }
-
-        run.setName(run.getName());
-        run.setOperatorName(run.getOperatorName());
+// Валидация, так чтобы updatedAt корректно обновлялся - теперь не вызываем сеттеры,
+        // которые обновляют, а через отдельные методы валидируем.
+        Run.validateFields(run.getName(), run.getOperatorName());
     }
 
     private static void validateRunResult(RunResult result) {
@@ -124,9 +125,8 @@ public final class FileValidator {
             throw new IllegalArgumentException("param у RunResult не может быть null");
         }
 
-        result.setParam(result.getParam());
-        result.setValue(result.getValue());
-        result.setUnit(result.getUnit());
-        result.setComment(result.getComment());
+        // Валидация, так чтобы updatedAt корректно обновлялся - теперь не вызываем сеттеры,
+        // которые обновляют, а через отдельные методы валидируем.
+        RunResult.validateFields(result.getParam(), result.getValue(), result.getUnit(), result.getComment());
     }
 }

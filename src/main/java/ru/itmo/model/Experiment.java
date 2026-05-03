@@ -23,6 +23,7 @@ public final class Experiment implements Serializable {
     public Experiment(long id, Instant createdAt) {
         this.id = id;
         this.createdAt = createdAt;
+        this.updatedAt = createdAt;
     }
 
     public Experiment(long id, Instant createdAt, String name, String description, String ownerUsername, Instant updatedAt) {
@@ -31,7 +32,7 @@ public final class Experiment implements Serializable {
         this.setName(name);
         this.setDescription(description);
         this.setOwnerUsername(ownerUsername);
-        this.updatedAt = updatedAt;
+        this.updatedAt = updatedAt ;
     }
 
     @JsonCreator
@@ -45,10 +46,34 @@ public final class Experiment implements Serializable {
     ) {
         this.id = id;
         this.createdAt = createdAt;
-        this.ownerUsername = ownerUsername;
+        this.ownerUsername = ownerUsername != null ? ownerUsername : "SYSTEM";
         this.name = name;
         this.description = description;
         this.updatedAt = updatedAt;
+    }
+
+    // Статический метод
+    // Проверка ограничений полей без вызова сеттера, чтобы updatedAt не было равным времени загрузки,
+    // а было действительно временем обновления, аналогичные поля в других классах пакета model
+    public static void validateFields(String name, String description, String ownerUsername) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Название эксперимента не может быть пустым");
+        }
+        if (name.length() > 128) {
+            throw new IllegalArgumentException("Название эксперимента не может превышать 128 символов");
+        }
+        if (description == null) {
+            throw new IllegalArgumentException("Описание не может быть null");
+        }
+        if (description.length() > 512) {
+            throw new IllegalArgumentException("Описание не может превышать 512 символов");
+        }
+        if (ownerUsername == null || ownerUsername.isBlank()) {
+            throw new IllegalArgumentException("Имя владельца не может быть пустым");
+        }
+        if (ownerUsername.length() > 64) {
+            throw new IllegalArgumentException("Имя владельца не может превышать 64 символов");
+        }
     }
 
     public long getId() { return id; }

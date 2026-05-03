@@ -14,9 +14,12 @@ public class XmlStorageTest {
         RunManager runManager = new RunManager(experimentManager);
         RunResultManager runResultManager = new RunResultManager(runManager);
 
-        experimentManager.add("Эксперимент 1", "Описание 1", "Egor");
-        runManager.add(1, "Запуск 1", "Egor");
-        runResultManager.add(1, MeasurementParam.PH, 7.0, "pH", "Норма");
+       // пользователь тест как владелец чтобы проверка для этапа 5 тоже работала
+        String owner = "test";
+
+        experimentManager.add("Эксперимент 1", "Описание 1", owner);
+        runManager.add(1, "Запуск 1", owner, owner);
+        runResultManager.add(1, MeasurementParam.PH, 7.0, "pH", "Норма", owner);
 
         FileStorage storage = new FileStorage(experimentManager, runManager, runResultManager);
         Path path = Path.of("test-data.xml");
@@ -24,7 +27,7 @@ public class XmlStorageTest {
         storage.save(path);
         System.out.println("Файл сохранён");
 
-        experimentManager.remove(1);
+        experimentManager.remove(1, owner);
 
         System.out.println("После удаления:");
         System.out.println("experiments = " + experimentManager.getAll().size());

@@ -24,17 +24,29 @@ public class RunManager {
 //Принимает ID эксперимента, название запуска и имя оператора.
 // Проверяет, что эксперимент существует, создаёт новый запуск с текущим временем и возвращает его.
 
-    public Run add(long experimentId, String runName, String operatorName) {
+    public Run add(long experimentId, String runName, String operatorName, String ownerUsername) {
+        if (!experimentManager.getOwner(experimentId).equals(ownerUsername)) {
+            throw new SecurityException("Нельзя добавлять запуски к чужому эксперименту");
+        }
         if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);
         }
         long id = generateId();
         Instant now = Instant.now();
-        Run run = new Run(id, experimentId, runName, operatorName, now);
+        Run run = new Run(id, experimentId, now,  runName, operatorName, ownerUsername);
         runs.put(id, run);
         return run;
     }
-    //
+
+
+    public void ensureOwnership(long runId, String requester) {
+        Run run = getById(runId);
+        if (!run.getOwnerUsername().equals(requester)) {
+            throw new SecurityException("У вас нет прав на изменение этого запуска.");
+        }
+    }
+
+
     public Run getById(long id) {
         Run run = runs.get(id);
         if (run == null) {
@@ -47,7 +59,8 @@ public class RunManager {
         return new ArrayList<>(runs.values());
     }
 
-    public void remove(long id) {
+    public void remove(long id, String requester) {
+        ensureOwnership(id, requester);
         if (runs.remove(id) == null) {
             throw new NoSuchElementException("Run не найден: id=" + id);
         }
@@ -109,7 +122,8 @@ public class RunManager {
                 .collect(Collectors.toList());
     }
 
-    public Run update(long runId, String name, String operatorName) {
+    public Run update(long runId, String name, String operatorName, String requester) {
+        ensureOwnership(runId, requester);
         Run run = getById(runId);
         if (name != null) {
             run.setName(name);
@@ -119,9 +133,7 @@ public class RunManager {
         }
         return run;
     }
-
-    public void clear() {
-        runs.clear();
-        nextId = 1;
+    public void clearByOwner(String owner) {
+        runs.values().removeIf(run -> run.getOwnerUsername() != null && run.getOwnerUsername().equals(owner));
     }
 }

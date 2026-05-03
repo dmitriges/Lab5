@@ -1,5 +1,6 @@
 package ru.itmo.cli.commands;
 
+import ru.itmo.cli.Cli;
 import ru.itmo.model.MeasurementParam;
 import ru.itmo.model.RunResult;
 import ru.itmo.services.RunManager;
@@ -8,14 +9,22 @@ import ru.itmo.services.RunResultManager;
 public class ResAddCommand extends BaseCommand {
     private final RunResultManager runResultManager;
     private final RunManager runManager;
+    private final Cli cli;
 
-    public ResAddCommand(RunResultManager runResultManager, RunManager runManager) {
+    public ResAddCommand(RunResultManager runResultManager, RunManager runManager, Cli cli) {
         this.runResultManager = runResultManager;
         this.runManager = runManager;
+        this.cli = cli;
     }
 
     @Override
     public void execute(String[] args) {
+
+        if (cli.getCurrentUser() == null) {
+            System.out.println("Ошибка: необходимо войти в систему.");
+            return;
+        }
+
         if (args.length < 1) {
             System.out.println("Ошибка: укажите ID запуска.");
             return;
@@ -41,7 +50,7 @@ public class ResAddCommand extends BaseCommand {
 
 
 
-        RunResult runResult = runResultManager.add(runId, param, value, unit, comment);
+        RunResult runResult = runResultManager.add(runId, param, value, unit, comment, cli.getCurrentUser());
 
         //Все собранные данные передаются в метод add менеджера результатов.
         // Менеджер создаёт объект RunResult с автоматически сгенерированным ID и текущим временем,

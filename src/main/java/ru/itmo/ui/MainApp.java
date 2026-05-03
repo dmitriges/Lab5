@@ -7,6 +7,7 @@ import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import ru.itmo.model.Experiment;
@@ -14,24 +15,25 @@ import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
 import ru.itmo.services.RunResultManager;
 import ru.itmo.storage.FileStorage;
-
+import ru.itmo.storage.UserStorage;
+import ru.itmo.ui.util.AlertUtil;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-
 import static javafx.collections.FXCollections.observableArrayList;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Alert;
 
 public class MainApp extends Application { //приложение на основе java-fx
-
     private static final Path DEFAULT_XML_PATH = Path.of("data.xml"); //стандартный XML-файл, с которым приложение работает по умолчанию.
 //создаёт объект пути к файлу в текущей рабочей директории.
     private final ProgressBar progressBar = new javafx.scene.control.ProgressBar();
     private final Label statusLabel = new javafx.scene.control.Label("Готов");
+    //TODO  Почему Task<?> - вспомнить
     private Task<?> currentTask;//Ссылка на текущую фоновую задачу (если она выполняется).
-
     private final ExperimentManager experimentManager = new ExperimentManager();
     private final RunManager runManager = new RunManager(experimentManager);
     private final RunResultManager runResultManager = new RunResultManager(runManager);
@@ -40,6 +42,8 @@ public class MainApp extends Application { //приложение на осно�
             runManager,
             runResultManager
     );
+    private String currentUser;
+    private UserStorage userStorage;
     private final TableView<Experiment> tableView = new TableView<>();
 // создает главную табличку
 
@@ -96,9 +100,17 @@ public class MainApp extends Application { //приложение на осно�
 
     @Override
     public void start(Stage stage) {
+        userStorage = new UserStorage("users.json");
+        LoginDialog loginDialog = new LoginDialog(userStorage);
+        Optional<String> loginResult = loginDialog.showAndWaitForLogin();
+        if (loginResult.isEmpty()) {
+            // Если окно закрыли без входа – завершаем приложение
+            System.exit(0);
+        }
+        currentUser = loginResult.get();
+
+
         BorderPane root = new BorderPane();
-
-
         configureTable();
         // статусная панель внизу
         javafx.scene.layout.HBox statusBox = new javafx.scene.layout.HBox(10, statusLabel, progressBar);
@@ -125,9 +137,29 @@ public class MainApp extends Application { //приложение на осно�
         idColumn.setCellValueFactory(cellData ->
                 new SimpleObjectProperty<>(cellData.getValue().getId()));
 //cellData – это объект типа CellDataFeatures<Experiment, Long>
+        // делаем так чтобы если name слишком длинное то был красивый перенос
         TableColumn<Experiment, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));
+        nameColumn.setCellFactory(column -> new TableCell<Experiment, String>() {
+            private final Text text = new Text();
+            {
+                text.wrappingWidthProperty().bind(column.widthProperty());
+                setGraphic(text);//заставляет текст переноситься,
+                // когда он превышает текущую ширину колонки.
+            }
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    text.setText(null);
+                } else {
+                    text.setText(item);
+                }
+            }
+        });
+        nameColumn.setPrefWidth(180);  // ширина колонки
+
 
         TableColumn<Experiment, String> descriptionColumn = new TableColumn<>("Description");
         descriptionColumn.setCellValueFactory(cellData ->
@@ -151,7 +183,6 @@ public class MainApp extends Application { //приложение на осно�
         ownerColumn.setPrefWidth(140);
         createdAtColumn.setPrefWidth(240);
         updatedAtColumn.setPrefWidth(240);
-
         tableView.getColumns().setAll(
                 idColumn,
                 nameColumn,
@@ -160,6 +191,8 @@ public class MainApp extends Application { //приложение на осно�
                 createdAtColumn,
                 updatedAtColumn
         );
+        tableView.setFixedCellSize(-1);// отключает фиксированную высоту строки,
+        // позволяя строкам растягиваться под контент.
     }
 
     private ToolBar createToolBar(Stage stage) {
@@ -196,29 +229,27 @@ public class MainApp extends Application { //приложение на осно�
 
         loadMenuButton.getItems().addAll(loadItem, loadFromItem);
 
-        return new ToolBar(
-                refreshButton,
-                addButton,
-                editButton,
-                deleteButton,
-                clearButton,
-                saveMenuButton,
-                loadMenuButton
+        Label userLabel = new Label("Пользователь: " + currentUser);
+        userLabel.setStyle("-fx-font-weight: bold;");
+
+        ToolBar toolbar = new ToolBar(
+                refreshButton, addButton, editButton, deleteButton, clearButton,
+                saveMenuButton, loadMenuButton,
+                new Separator(),   // разделитель
+                userLabel
         );
+        return toolbar;
     }
 
     private void handleAdd() {
         ExperimentDialog.ExperimentInputData data = ExperimentDialog.showAddDialog();
-        if (data == null) {
-            return;
-        }
+        if (data == null) return;
 
         try {
-            experimentManager.add(
-                    data.name(),
-                    data.description(),
-                    data.owner()
-            );
+            experimentManager.add(data.name(), data.description(), currentUser);
+            refreshTable();   // технически по условию должно быть ручное обновление,
+            // но можно оставить автоматическое обновление для удобства;
+            // если строго следовать ТЗ – убрать refreshTable() и ждать кнопку Refresh
         } catch (Exception e) {
             AlertUtil.showError("Ошибка добавления: " + e.getMessage());
         }
@@ -226,29 +257,31 @@ public class MainApp extends Application { //приложение на осно�
 
     private void handleEdit() {
         Experiment selected = getSelectedExperimentOrShowError();
-        if (selected == null) {
+        if (selected == null) return;
+
+        // Проверка владельца
+        if (!selected.getOwnerUsername().equals(currentUser)) {
+            AlertUtil.showError("У вас нет прав на редактирование этого эксперимента.");
             return;
         }
 
         ExperimentDialog.ExperimentEditData data = ExperimentDialog.showEditDialog(selected);
-        if (data == null) {
-            return;
-        }
+        if (data == null) return;
 
         try {
-            experimentManager.update(
-                    selected.getId(),
-                    data.name(),
-                    data.description()
-            );
+            experimentManager.update(selected.getId(), data.name(), data.description(), currentUser);
         } catch (Exception e) {
             AlertUtil.showError("Ошибка редактирования: " + e.getMessage());
         }
     }
 
+
     private void handleDelete() {
         Experiment selected = getSelectedExperimentOrShowError();
-        if (selected == null) {
+        if (selected == null) return;
+
+        if (!selected.getOwnerUsername().equals(currentUser)) {
+            AlertUtil.showError("У вас нет прав на удаление этого эксперимента.");
             return;
         }
 
@@ -263,7 +296,7 @@ public class MainApp extends Application { //приложение на осно�
         }
 
         try {
-            experimentManager.remove(selected.getId());
+            experimentManager.remove(selected.getId(), currentUser);
         } catch (Exception e) {
             AlertUtil.showError("Ошибка удаления: " + e.getMessage());
         }
@@ -273,16 +306,12 @@ public class MainApp extends Application { //приложение на осно�
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Подтверждение очистки");
         confirm.setHeaderText("Очистка данных");
-        confirm.setContentText("Удалить все эксперименты из текущей сессии?");
+        confirm.setContentText("Удалить все ваши эксперименты, запуски и результаты?");
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
-            return;
-        }
-
-        runResultManager.clear();
-        runManager.clear();
-        experimentManager.clear();
+        runResultManager.clearByOwner(currentUser);
+        runManager.clearByOwner(currentUser);
+        experimentManager.clearByOwner(currentUser);
     }
 
     private void saveDefaultFile() {

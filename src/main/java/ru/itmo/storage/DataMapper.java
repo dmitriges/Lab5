@@ -19,7 +19,7 @@ public final class DataMapper {
     private static XmlMapper createXmlMapper() {
         XmlMapper mapper = new XmlMapper();
         mapper.registerModule(new JavaTimeModule());
-        //регистрируенм модуль, без которого JAckson не сможет прочитать поля типа Instant
+        // Регистрируем модуль, без которого Jackson не сможет прочитать поля типа Instant
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         // отключаем неудобную запись чисел в виде массива
         //После отключения этой настройки дата будет записана в ISO-строковом формате:

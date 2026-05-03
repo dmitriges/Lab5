@@ -16,7 +16,7 @@ import java.util.Map;
 // если изменить название
 public class AppData {
 
-    // jaсkson лучше сериализует
+    // jaсkson лучше сериализует листы
     private List<Experiment> experiments;
     private List<Run> runs;
     private List<RunResult> results;

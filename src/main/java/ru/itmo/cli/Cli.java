@@ -5,13 +5,18 @@ import ru.itmo.services.*;
 
 import java.util.Scanner;
 import ru.itmo.storage.FileStorage;
+import ru.itmo.storage.UserStorage;
 
 
 public class Cli {
     private final Scanner scanner;
     private final CommandRegistry registry;
     private boolean running = true;
-    // Флаг, управляющий работой главного цикла. Пока true, программа принимает команды.
+    // Флаг, управляющий работой главного цикла. Пока true программа принимает команды.
+
+    // для этапа 5
+    private final UserStorage userStorage;
+    private String currentUser = null;   // null означает "не авторизован"
 
     public Cli() {
         // Инициализация менеджеров
@@ -20,6 +25,10 @@ public class Cli {
         RunResultManager runResultManager = new RunResultManager(runManager);
         SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
         FileStorage fileStorage = new FileStorage(experimentManager, runManager, runResultManager);
+
+        //для этапа 5
+        // Хранилище пользователей (файл users.json в текущей папке)
+        this.userStorage = new UserStorage("users.json");
 
         // Реестр команд
         //Каждая команда получает необходимые ей зависимости
@@ -33,22 +42,35 @@ public class Cli {
         // В его конструктор передаётся this — ссылка на текущий объект Cli.
         //Класс ExitCommand должен иметь возможность завершить работу программы, то есть остановить цикл в Cli.
         // Для этого ему нужна ссылка на объект Cli, чтобы вызвать его метод stop()
-        registry.register("exp_create", new ExpCreateCommand(experimentManager));
+        registry.register("exp_create", new ExpCreateCommand(experimentManager, this));
+        // передаем this в команды требующие авторизации  и/или Cli
         registry.register("exp_list", new ExpListCommand(experimentManager));
         registry.register("exp_show", new ExpShowCommand(experimentManager, runManager));
-        registry.register("exp_update", new ExpUpdateCommand(experimentManager));
-        registry.register("run_add", new RunAddCommand(runManager, experimentManager));
+        registry.register("exp_update", new ExpUpdateCommand(experimentManager, this));
+        registry.register("run_add", new RunAddCommand(runManager, experimentManager, this));
         registry.register("run_list", new RunListCommand(runManager));
         registry.register("run_show", new RunShowCommand(runManager, runResultManager));
-        registry.register("res_add", new ResAddCommand(runResultManager, runManager));
+        registry.register("res_add", new ResAddCommand(runResultManager, runManager, this));
         registry.register("res_list", new ResListCommand(runResultManager));
         registry.register("exp_summary", new ExpSummaryCommand(summaryManager));
-        registry.register("save", new SaveCommand(fileStorage));
+        registry.register("save", new SaveCommand(fileStorage, this));
         registry.register("load", new LoadCommand(fileStorage));
-
+        registry.register("logout", new LogoutCommand(this));
+        registry.register("clear", new ClearCommand(experimentManager, runManager, runResultManager, this));
         scanner = new Scanner(System.in);
         //Создание Scanner для последующего чтения ввода.
+
+        // Новые команды для этапа 5 + геттеры сеттеры
+        registry.register("register", new RegisterCommand(userStorage));
+        registry.register("login", new LoginCommand(this, userStorage));
     }
+    public String getCurrentUser() {
+        return currentUser;
+    }
+    public void setCurrentUser(String currentUser) {
+        this.currentUser = currentUser;
+    }
+
 
     public void start() {
         System.out.println("Добро пожаловать в систему управления экспериментами.");

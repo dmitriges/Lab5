@@ -1,0 +1,10 @@
+[ {
+  "login" : "bob",
+  "passwordHash" : "f8638b979b2f4f793ddb6dbd197e0ee25a7a6ea32b0ae22f5e3c5d119d839e75"
+}, {
+  "login" : "alice",
+  "passwordHash" : "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
+}, {
+  "login" : "KeijoFan",
+  "passwordHash" : "45992fb47f101d0d7e508bcd1533b8e21055c7317eb7637ce27b2ca297358252"
+} ]

@@ -2,11 +2,16 @@ package ru.itmo.cli.commands;
 
 import ru.itmo.model.Experiment;
 import ru.itmo.services.ExperimentManager;
+import java.util.ArrayList;
 import java.util.List;
 
+// переписал так, чтобы был красивый вывод
 public class ExpListCommand implements Command {
     private final ExperimentManager experimentManager;
-    //ссылка на менеджер экспериментов, через который будут получаться данные.
+
+    private static final int ID_WIDTH = 5;
+    private static final int NAME_WIDTH = 30;
+    private static final int OWNER_WIDTH = 20;
 
     public ExpListCommand(ExperimentManager experimentManager) {
         this.experimentManager = experimentManager;
@@ -15,19 +20,56 @@ public class ExpListCommand implements Command {
     @Override
     public void execute(String[] args) {
         List<Experiment> experiments = experimentManager.getAll();
-        //Запрашивает у менеджера список всех экспериментов
         if (experiments.isEmpty()) {
             System.out.println("Нет экспериментов.");
             return;
         }
-        System.out.printf("%-5s %-30s%n", "ID", "Name");
-        //Выводится заголовок таблицы с помощью форматированного вывода.
-        //%-5s — строка, выровненная влево, шириной 5 символов.
-        //%-30s — строка, выровненная влево, шириной 30 символов.
-        //%n — перевод строки
+
+        // Заголовок
+        System.out.printf("%-5s %-30s %-20s%n", "ID", "Name", "Owner");
+
         for (Experiment exp : experiments) {
-            System.out.printf("%-5d %-30s%n", exp.getId(), exp.getName());
-        }//Выводит идентификатор (как число, выровненное влево на 5 позиций)
-        // и имя (выровненное влево на 30 позиций).
+            String idStr = String.format("%-5d", exp.getId());
+            String ownerStr = exp.getOwnerUsername();
+            List<String> nameLines = wrapText(exp.getName(), NAME_WIDTH);
+
+            // Первая строка с ID и владельцем
+            System.out.printf("%-5s %-30s %-20s%n",
+                    idStr,
+                    nameLines.get(0),
+                    ownerStr);
+
+            // Дополнительные строки названия (если есть)
+            for (int i = 1; i < nameLines.size(); i++) {
+                System.out.printf("%-5s %-30s %-20s%n",
+                        "",                    // ID не повторяем
+                        nameLines.get(i),
+                        "");                   // Owner не повторяем
+            }
+        }
+    }
+
+
+    // Разобьем текст на строки заданной ширины, стараясь разрывать по пробелам
+    private List<String> wrapText(String text, int width) {
+        List<String> lines = new ArrayList<>();
+        if (text == null || text.isEmpty()) {
+            lines.add("");
+            return lines;
+        }
+
+        String remaining = text;
+        while (remaining.length() > width) {
+            int breakPos = remaining.lastIndexOf(' ', width);
+            if (breakPos <= 0) {
+                breakPos = width;
+            }
+            lines.add(remaining.substring(0, breakPos).trim());
+            remaining = remaining.substring(breakPos).trim();
+        }
+        if (!remaining.isEmpty()) {
+            lines.add(remaining);
+        }
+        return lines;
     }
 }

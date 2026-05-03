@@ -32,7 +32,17 @@ public class ExperimentManager {
         }
         return exp;
     }
-// принимает лист загруженных экспериментов
+
+    // метод для этапа 5, проверка владельца
+    public void ensureOwnership(long experimentId, String username) {
+        Experiment exp = getById(experimentId);
+        if (!exp.getOwnerUsername().equals(username)) {
+            throw new SecurityException("Нет прав на изменение объекта.");
+        }
+    }
+
+
+    // принимает лист загруженных экспериментов
     public void importData(java.util.List<Experiment> loadedExperiments) {
         experiments.clear();
         // очищает текущее значение поля experiment в experimentManager
@@ -58,29 +68,32 @@ public class ExperimentManager {
         return new java.util.TreeMap<>(experiments);
     }
 
-    public Experiment update(long id, String newName, String newDescription) {
+    public Experiment update(long id, String newName, String newDescription, String requester) {
+        ensureOwnership(id, requester);
         Experiment exp = getById(id);
-        if (newName != null) {
-            exp.setName(newName);
-        }
-        if (newDescription != null) {
-            exp.setDescription(newDescription);
-        }
+        if (newName != null) exp.setName(newName);
+        if (newDescription != null) exp.setDescription(newDescription);
         return exp;
     }
 
-    public void remove(long id) {
+    public void remove(long id, String requester) {
+        ensureOwnership(id, requester);
         if (experiments.remove(id) == null) {
             throw new NoSuchElementException("Experiment не найден: id=" + id);
         }
     }
 
-    public void clear() {
-        experiments.clear();
-        nextId = 1;
+    public void clearByOwner(String ownerUsername) {
+        experiments.values().removeIf(exp -> exp.getOwnerUsername() != null && exp.getOwnerUsername().equals(ownerUsername));
     }
 
     public boolean exists(long id) {
         return experiments.containsKey(id);
+    }
+
+
+    public String getOwner(long experimentId) {
+        Experiment exp = getById(experimentId);   // выбросит NoSuchElementException, если не найден
+        return exp.getOwnerUsername();
     }
 }
