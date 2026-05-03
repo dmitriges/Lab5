@@ -124,7 +124,7 @@ public class MainApp extends Application { //приложение на осно�
         TableColumn<Experiment, Long> idColumn = new TableColumn<>("ID");
         idColumn.setCellValueFactory(cellData ->
                 new SimpleObjectProperty<>(cellData.getValue().getId()));
-
+//cellData – это объект типа CellDataFeatures<Experiment, Long>
         TableColumn<Experiment, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));

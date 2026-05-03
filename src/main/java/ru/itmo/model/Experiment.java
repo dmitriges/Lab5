@@ -3,11 +3,14 @@ package ru.itmo.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
 public final class Experiment implements Serializable {
+    // TODO разобраться
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private final long id;
@@ -20,7 +23,15 @@ public final class Experiment implements Serializable {
     public Experiment(long id, Instant createdAt) {
         this.id = id;
         this.createdAt = createdAt;
-        this.updatedAt = createdAt;
+    }
+
+    public Experiment(long id, Instant createdAt, String name, String description, String ownerUsername, Instant updatedAt) {
+        this.id = id;
+        this.createdAt = createdAt;
+        this.setName(name);
+        this.setDescription(description);
+        this.setOwnerUsername(ownerUsername);
+        this.updatedAt = updatedAt;
     }
 
     @JsonCreator
@@ -34,9 +45,9 @@ public final class Experiment implements Serializable {
     ) {
         this.id = id;
         this.createdAt = createdAt;
+        this.ownerUsername = ownerUsername;
         this.name = name;
         this.description = description;
-        this.ownerUsername = ownerUsername;
         this.updatedAt = updatedAt;
     }
 

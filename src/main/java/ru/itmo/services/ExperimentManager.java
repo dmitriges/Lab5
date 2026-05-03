@@ -17,7 +17,10 @@ public class ExperimentManager {
         String owner = (ownerUsername == null || ownerUsername.isBlank()) ? "SYSTEM" : ownerUsername;
         long id = generateId();
         Instant now = Instant.now();
-        Experiment exp = new Experiment(id, name, description, owner, now, now);
+        Experiment exp = new Experiment(id, now);
+        exp.setName(name);
+        exp.setDescription(description);
+        exp.setOwnerUsername(owner);
         experiments.put(id, exp);
         return exp;
     }

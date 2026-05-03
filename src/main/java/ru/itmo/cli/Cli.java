@@ -11,7 +11,7 @@ public class Cli {
     private final Scanner scanner;
     private final CommandRegistry registry;
     private boolean running = true;
-    //флаг, управляющий работой главного цикла. Пока true, программа принимает команды.
+    // Флаг, управляющий работой главного цикла. Пока true, программа принимает команды.
 
     public Cli() {
         // Инициализация менеджеров
@@ -26,7 +26,7 @@ public class Cli {
         registry = new CommandRegistry();
         registry.register("help", new HelpCommand(registry));
         registry.register("exit", new ExitCommand(this));
-        //вызывается метод register у объекта registry
+        // Вызывается метод register у объекта registry
         // который связывает строку "exit" с объектом команды.
         // Теперь при вводе пользователем команды exit реестр вернёт этот объект.
         //new ExitCommand(this) — создаётся новый экземпляр класса ExitCommand.
@@ -65,7 +65,7 @@ public class Cli {
             String commandName = parts[0].toLowerCase();
             String[] args = new String[parts.length - 1];
             System.arraycopy(parts, 1, args, 0, args.length);
-            // это встроенный метод Java для копирования элементов из одного массива в другой
+            // Это встроенный метод Java для копирования элементов из одного массива в другой
             //массив строк, полученный разбиением введённой пользователем команды.
             // Например, если пользователь ввёл "exp_show 2", то parts будет ["exp_show", "2"].
             //1 — начинаем копировать со второго элемента исходного массива

@@ -19,11 +19,7 @@ public class RunResultManager {
         return nextId++;
     }
 
-    public RunResult add(long runId,
-                         MeasurementParam param,
-                         double value,
-                         String unit,
-                         String comment) {
+    public RunResult add(long runId, MeasurementParam param,double value, String unit, String comment) {
         if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
         }

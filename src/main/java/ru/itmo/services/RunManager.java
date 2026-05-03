@@ -20,8 +20,10 @@ public class RunManager {
     private long generateId() {
         return nextId++;
     }
+
 //Принимает ID эксперимента, название запуска и имя оператора.
 // Проверяет, что эксперимент существует, создаёт новый запуск с текущим временем и возвращает его.
+
     public Run add(long experimentId, String runName, String operatorName) {
         if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);

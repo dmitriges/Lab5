@@ -34,7 +34,7 @@ public class FileStorage {
 
     public void loadIntoManagers(Path path) throws IOException {
         AppData data = load(path);
-// записывааем новые данные
+// записываем новые данные
         experimentManager.importData(data.getExperiments());
         runManager.importData(data.getRuns());
         runResultManager.importData(data.getResults());

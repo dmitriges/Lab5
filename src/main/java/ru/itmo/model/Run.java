@@ -12,6 +12,20 @@ public final class Run {
     private String name;
     private String operatorName;
 
+    public Run(long id, long experimentId, Instant createdAt) {
+        this.id = id;
+        this.experimentId = experimentId;
+        this.createdAt = createdAt;
+    }
+
+    public Run(long id, long experimentId, Instant createdAt, String name, String operatorName) {
+        this.id = id;
+        this.experimentId = experimentId;
+        this.createdAt = createdAt;
+        this.setName(name);
+        this.setOperatorName(operatorName);
+    }
+
     @JsonCreator
     public Run(
             @JsonProperty("id") long id,
@@ -23,8 +37,8 @@ public final class Run {
         this.id = id;
         this.experimentId = experimentId;
         this.createdAt = createdAt;
-        this.setName(name);
-        this.setOperatorName(operatorName);
+        this.name = name;
+        this.operatorName = operatorName;
     }
 
     public long getId() { return id; }

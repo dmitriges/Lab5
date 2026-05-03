@@ -14,6 +14,16 @@ public final class RunResult {
     private String unit;
     private String comment;
 
+    public RunResult(long id, Instant createdAt, String comment, String unit, double value, MeasurementParam param, long runId) {
+        this.id = id;
+        this.createdAt = createdAt;
+        this.setParam(param);
+        this.setValue(value);
+        this.setUnit(unit);
+        this.setComment(comment);
+        this.runId = runId;
+    }
+
     @JsonCreator
     public RunResult(
             @JsonProperty("id") long id,
@@ -27,10 +37,10 @@ public final class RunResult {
         this.id = id;
         this.createdAt = createdAt;
         this.runId = runId;
-        this.setParam(param);
-        this.setValue(value);
-        this.setUnit(unit);
-        this.setComment(comment);
+        this.comment = comment;
+        this.unit = unit;
+        this.value = value;
+        this.param = param;
     }
 
     // Геттеры
@@ -56,7 +66,7 @@ public final class RunResult {
         }
         this.param = param;
     }
-
+// TODO почему isFinite???? как может быть не конечным при ручном вводе?
     public void setValue(double value) {
         if (!Double.isFinite(value)) {
             throw new IllegalArgumentException("Значение должно быть конечным числом");
