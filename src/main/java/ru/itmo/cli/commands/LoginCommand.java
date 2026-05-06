@@ -1,15 +1,15 @@
 package ru.itmo.cli.commands;
 
 import ru.itmo.cli.Cli;
-import ru.itmo.storage.UserStorage;
+import ru.itmo.services.UserManager;
 
 public class LoginCommand extends BaseCommand {
     private final Cli cli;
-    private final UserStorage userStorage;
+    private final UserManager userManager;
 
-    public LoginCommand(Cli cli, UserStorage userStorage) {
+    public LoginCommand(Cli cli, UserManager userStorage) {
         this.cli = cli;
-        this.userStorage = userStorage;
+        this.userManager = userStorage;
     }
 
     @Override
@@ -26,7 +26,7 @@ public class LoginCommand extends BaseCommand {
         String login = input.promptNonEmpty("Логин: ");
         String password = input.prompt("Пароль: ");
         try {
-            userStorage.authenticate(login, password);
+            userManager.authenticate(login, password);
             cli.setCurrentUser(login);
             System.out.println("Добро пожаловать, '" + login + "'!");
         } catch (IllegalArgumentException e) {

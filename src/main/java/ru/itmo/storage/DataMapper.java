@@ -1,3 +1,4 @@
+/*
 package ru.itmo.storage;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -35,3 +36,4 @@ public final class DataMapper {
         return XML_MAPPER;
     }
 }
+*/

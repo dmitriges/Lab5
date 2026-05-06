@@ -1,12 +1,12 @@
 package ru.itmo.cli.commands;
 
-import ru.itmo.storage.UserStorage;
+import ru.itmo.services.UserManager;
 
 // новая команда для этапа 5
 public class RegisterCommand extends BaseCommand {
-    private final UserStorage userStorage;
+    private final UserManager userStorage;
 
-    public RegisterCommand(UserStorage userStorage) {
+    public RegisterCommand(UserManager userStorage) {
         this.userStorage = userStorage;
     }
 

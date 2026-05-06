@@ -1,3 +1,4 @@
+/*
 package ru.itmo.cli.commands;
 
 import ru.itmo.storage.FileStorage;
@@ -27,3 +28,4 @@ public class LoadCommand extends BaseCommand {
         }
     }
 }
+*/

@@ -1,43 +1,70 @@
 package ru.itmo.services;
 
 import ru.itmo.model.Run;
+import ru.itmo.repository.RunRepository;
+
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class RunManager {
-    private final TreeMap<Long, Run> runs = new TreeMap<>();
-    private long nextId = 1;
+    private final TreeMap<Long, Run> cache = new TreeMap<>();
+    private final RunRepository repository;
     private final ExperimentManager experimentManager;
 
-    public RunManager(ExperimentManager experimentManager) {
-        if (experimentManager == null) {
-            throw new NullPointerException("experimentManager не может быть null");
-        }
+
+    public RunManager(RunRepository repository, ExperimentManager experimentManager) {
+        this.repository = repository;
         this.experimentManager = experimentManager;
+        loadAll();
     }
 
-    private long generateId() {
-        return nextId++;
+    private void loadAll() {
+        try {
+            List<Run> all = repository.findAll();
+            cache.clear();
+            for (Run run : all) {
+                cache.put(run.getId(), run);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка загрузки запусков из БД", e);
+        }
     }
+
 
 //Принимает ID эксперимента, название запуска и имя оператора.
 // Проверяет, что эксперимент существует, создаёт новый запуск с текущим временем и возвращает его.
 
     public Run add(long experimentId, String runName, String operatorName, String ownerUsername) {
-        if (!experimentManager.getOwner(experimentId).equals(ownerUsername)) {
-            throw new SecurityException("Нельзя добавлять запуски к чужому эксперименту");
-        }
         if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);
         }
-        long id = generateId();
+        String expOwner = experimentManager.getOwner(experimentId);
+        if (!expOwner.equals(ownerUsername)) {
+            throw new SecurityException("Нельзя добавлять запуски к чужому эксперименту");
+        }
+
         Instant now = Instant.now();
-        Run run = new Run(id, experimentId, now,  runName, operatorName, ownerUsername);
-        runs.put(id, run);
-        return run;
+        // опять заглушка сначала создаем пробег без айди чтобы потом взять его из бд
+        Run temp = new Run(0, experimentId, now, runName, operatorName, ownerUsername);
+        try {
+            long id = repository.save(temp);
+            Run created = new Run(id, experimentId, now, runName, operatorName, ownerUsername);
+            cache.put(id, created);
+            return created;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при добавлении запуска", e);
+        }
     }
 
+
+
+    public Run getById(long id) {
+        Run run = cache.get(id);
+        if (run == null) throw new NoSuchElementException("Run не найден: id=" + id);
+        return run;
+    }
 
     public void ensureOwnership(long runId, String requester) {
         Run run = getById(runId);
@@ -46,73 +73,42 @@ public class RunManager {
         }
     }
 
-
-    public Run getById(long id) {
-        Run run = runs.get(id);
-        if (run == null) {
-            throw new NoSuchElementException("Run не найден: id=" + id);
-        }
-        return run;
-    }
 //Возвращает список всех запусков (порядок по ID).
     public List<Run> getAll() {
-        return new ArrayList<>(runs.values());
+        return new ArrayList<>(cache.values());
     }
+
 
     public void remove(long id, String requester) {
         ensureOwnership(id, requester);
-        if (runs.remove(id) == null) {
-            throw new NoSuchElementException("Run не найден: id=" + id);
+        try {
+            repository.deleteById(id);
+            cache.remove(id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при удалении запуска", e);
         }
     }
+
+
 // containsKey - метод из treeMap
     public boolean exists(long id) {
-        return runs.containsKey(id);
+        return cache.containsKey(id);
     }
+
+
     //Возвращает все запуски, принадлежащие указанному эксперименту.
     public List<Run> listByExperiment(long experimentId) {
-        return runs.values().stream()
+        return cache.values().stream()
                 .filter(r -> r.getExperimentId() == experimentId)
-        //r -> r.getExperimentId() == experimentId. Для каждого элемента r (объект Run) проверяется,
-                // равен ли его experimentId переданному аргументу.
-                // Если да – элемент остаётся в потоке, если нет – отбрасывается.
                 .collect(Collectors.toList());
-        //.collect(Collectors.toList()) – терминальная операция, которая собирает элементы оставшегося потока
-        // в новый список (List<Run>). Collectors.toList() – стандартный коллектор, создающий ArrayList.
-    }
-    //Альтернативная реализация
-    //public List<Run> listByExperiment(long experimentId) {
-    //    List<Run> result = new ArrayList<>();
-    //    for (Run run : runs.values()) {
-    //        if (run.getExperimentId() == experimentId) {
-    //            result.add(run);
-    //        }
-    //    }
-    //    return result;
-    //}
-
-    public java.util.Map<Long, Run> exportData() {
-        return new java.util.TreeMap<>(runs);
     }
 
-    public void importData(java.util.List<Run> loadedRuns) {
-        runs.clear();
 
-        long maxId = 0;
-        for (Run run : loadedRuns) {
-            runs.put(run.getId(), run);
-            if (run.getId() > maxId) {
-                maxId = run.getId();
-            }
-        }
-
-        nextId = maxId + 1;
-    }
 
     //Возвращает последние n запусков эксперимента (сортировка по убыванию даты создания)
     public List<Run> listLastByExperiment(long experimentId, int n) {
         if (n <= 0) return List.of();// если запросил 0 или меньше последних - возвращаем пустой лист
-        return runs.values().stream()
+        return cache.values().stream()
                 // получаем коллекцию всех объектов Run, хранящихся в TreeMap, и создаём из неё поток (stream).
                 .filter(r -> r.getExperimentId() == experimentId)
                 //проверка каждого объекта из Run на равенство по айди с
@@ -125,15 +121,24 @@ public class RunManager {
     public Run update(long runId, String name, String operatorName, String requester) {
         ensureOwnership(runId, requester);
         Run run = getById(runId);
-        if (name != null) {
-            run.setName(name);
+        if (name != null) run.setName(name);
+        if (operatorName != null) run.setOperatorName(operatorName);
+        try {
+            repository.update(run);
+            cache.put(runId, run);
+            return run;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при обновлении запуска", e);
         }
-        if (operatorName != null) {
-            run.setOperatorName(operatorName);
-        }
-        return run;
     }
+
+
     public void clearByOwner(String owner) {
-        runs.values().removeIf(run -> run.getOwnerUsername() != null && run.getOwnerUsername().equals(owner));
+        try {
+            repository.deleteByOwner(owner);
+            cache.values().removeIf(run -> run.getOwnerUsername().equals(owner));
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при очистке запусков", e);
+        }
     }
 }

@@ -1,3 +1,4 @@
+/*
 package ru.itmo.storage;
 
 import ru.itmo.model.Experiment;
@@ -129,4 +130,4 @@ public final class FileValidator {
         // которые обновляют, а через отдельные методы валидируем.
         RunResult.validateFields(result.getParam(), result.getValue(), result.getUnit(), result.getComment());
     }
-}
+}*/

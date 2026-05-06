@@ -9,7 +9,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 public final class Experiment implements Serializable {
-    // TODO разобраться
+    //показывает, что это поле/метод связано с Java Serialization
+    // ЛИШНЕЕ ДЛЯ 6 ЭТАПА НО НЕ МЕШАЕТ КОРРЕКТНОЙ РАБОТЕ КОДА
     @Serial
     private static final long serialVersionUID = 1L;
 

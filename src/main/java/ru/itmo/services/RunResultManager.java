@@ -2,21 +2,34 @@ package ru.itmo.services;
 
 import ru.itmo.model.MeasurementParam;
 import ru.itmo.model.RunResult;
+import ru.itmo.repository.RunResultRepository;
+
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class RunResultManager {
-    private final TreeMap<Long, RunResult> results = new TreeMap<>();
-    private long nextId = 1;
+    private final TreeMap<Long, RunResult> cache = new TreeMap<>();
+    private final RunResultRepository repository;
     private final RunManager runManager;
 
-    public RunResultManager(RunManager runManager) {
-        this.runManager = Objects.requireNonNull(runManager);
+    public RunResultManager(RunResultRepository repository, RunManager runManager) {
+        this.repository = repository;
+        this.runManager = runManager;
+        loadAll();
     }
 
-    private long generateId() {
-        return nextId++;
+    private void loadAll() {
+        try {
+            List<RunResult> all = repository.findAll();
+            cache.clear();
+            for (RunResult runResult : all) {
+                cache.put(runResult.getId(), runResult);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка загрузки результатов из БД", e);
+        }
     }
 
     public RunResult add(long runId, MeasurementParam param, double value, String unit,
@@ -24,13 +37,25 @@ public class RunResultManager {
         if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
         }
+        String runOwner = runManager.getById(runId).getOwnerUsername();
+        if (!runOwner.equals(ownerUsername)) {
+            throw new SecurityException("Нельзя добавлять результаты к чужому запуску");
+        }
+
         String safeComment = comment == null ? "" : comment;
-        long id = generateId();
         Instant now = Instant.now();
-        RunResult rr = new RunResult(id, now, runId, param, value, unit, safeComment, ownerUsername);
-        results.put(id, rr);
-        return rr;
+        RunResult temp = new RunResult(0, now, runId, param, value, unit, safeComment, ownerUsername);
+        try {
+            long id = repository.save(temp);
+            RunResult created = new RunResult(id, now, runId, param, value, unit, safeComment, ownerUsername);
+            cache.put(id, created);
+            return created;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при добавлении результата", e);
+        }
     }
+
+
     public void ensureOwnership(long resultId, String requester) {
         RunResult rr = getById(resultId);
         if (!rr.getOwnerUsername().equals(requester)) {
@@ -38,7 +63,7 @@ public class RunResultManager {
         }
     }
     public RunResult getById(long id) {
-        RunResult rr = results.get(id);
+        RunResult rr = cache.get(id);
         if (rr == null) {
             throw new NoSuchElementException("RunResult не найден: id=" + id);
         }
@@ -46,59 +71,56 @@ public class RunResultManager {
     }
 
     public List<RunResult> getAll() {
-        return new ArrayList<>(results.values());
+        return new ArrayList<>(cache.values());
     }
+
 
     public void remove(long id, String requester) {
         ensureOwnership(id, requester);
-        if (results.remove(id) == null) {
-            throw new NoSuchElementException("RunResult не найден: id=" + id);
+        try {
+            repository.deleteById(id);
+            cache.remove(id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при удалении результата", e);
         }
     }
 
     public List<RunResult> listByRun(long runId) {
-        return results.values().stream()
+        return cache.values().stream()
                 .filter(r -> r.getRunId() == runId)
                 .collect(Collectors.toList());
     }
 
     public List<RunResult> listByRunAndParam(long runId, MeasurementParam param) {
-        return results.values().stream()
+        return cache.values().stream()
                 .filter(r -> r.getRunId() == runId)
                 .filter(r -> r.getParam() == param)
                 .collect(Collectors.toList());
     }
 
-    public java.util.Map<Long, RunResult> exportData() {
-        return new java.util.LinkedHashMap<>(results);
-    }
-
-    public void importData(java.util.List<RunResult> loadedResults) {
-        results.clear();
-
-        long maxId = 0;
-        for (RunResult result : loadedResults) {
-            results.put(result.getId(), result);
-            if (result.getId() > maxId) {
-                maxId = result.getId();
-            }
-        }
-
-        nextId = maxId + 1;
-    }
-
     public RunResult update(long resultId, MeasurementParam param, Double value,
                             String unit, String comment, String requester) {
         ensureOwnership(resultId, requester);
-        RunResult rr = getById(resultId);
-        if (param != null) rr.setParam(param);
-        if (value != null) rr.setValue(value);
-        if (unit != null) rr.setUnit(unit);
-        if (comment != null) rr.setComment(comment);
-        return rr;
+        RunResult runResult = getById(resultId);
+        if (param != null) runResult.setParam(param);
+        if (value != null) runResult.setValue(value);
+        if (unit != null) runResult.setUnit(unit);
+        if (comment != null) runResult.setComment(comment);
+        try {
+            repository.update(runResult);
+            cache.put(resultId, runResult);
+            return runResult;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при обновлении результата", e);
+        }
     }
 
     public void clearByOwner(String owner) {
-        results.values().removeIf(rr -> rr.getOwnerUsername() != null && rr.getOwnerUsername().equals(owner));
+        try {
+            repository.deleteByOwner(owner);
+            cache.values().removeIf(runResult -> runResult.getOwnerUsername().equals(owner));
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при очистке результатов", e);
+        }
     }
 }

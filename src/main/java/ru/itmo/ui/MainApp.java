@@ -7,15 +7,19 @@ import javafx.concurrent.Task;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import ru.itmo.model.Experiment;
+import ru.itmo.repository.ExperimentRepository;
+import ru.itmo.repository.RunRepository;
+import ru.itmo.repository.RunResultRepository;
+import ru.itmo.repository.UserRepository;
 import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
 import ru.itmo.services.RunResultManager;
-import ru.itmo.storage.FileStorage;
-import ru.itmo.storage.UserStorage;
+import ru.itmo.services.UserManager;
 import ru.itmo.ui.util.AlertUtil;
 import java.io.File;
 import java.nio.file.Files;
@@ -28,26 +32,27 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Alert;
 
 public class MainApp extends Application { //приложение на основе java-fx
-    private static final Path DEFAULT_XML_PATH = Path.of("data.xml"); //стандартный XML-файл, с которым приложение работает по умолчанию.
-//создаёт объект пути к файлу в текущей рабочей директории.
-    private final ProgressBar progressBar = new javafx.scene.control.ProgressBar();
-    private final Label statusLabel = new javafx.scene.control.Label("Готов");
-    //TODO  Почему Task<?> - вспомнить
-    private Task<?> currentTask;//Ссылка на текущую фоновую задачу (если она выполняется).
-    private final ExperimentManager experimentManager = new ExperimentManager();
-    private final RunManager runManager = new RunManager(experimentManager);
-    private final RunResultManager runResultManager = new RunResultManager(runManager);
-    private final FileStorage fileStorage = new FileStorage(
-            experimentManager,
-            runManager,
-            runResultManager
-    );
-    private String currentUser;
-    private UserStorage userStorage;
-    private final TableView<Experiment> tableView = new TableView<>();
-// создает главную табличку
 
-    private <T> void runAsyncTask(Task<T> task, String successMessage) {
+    // --- Менеджеры (инициализируются в start) ---
+    private ExperimentManager experimentManager;
+    private RunManager runManager;
+    private RunResultManager runResultManager;
+
+    // Текущий пользователь (логин)
+    private String currentUser;
+
+    // UI-компоненты
+    // создает главную табличку
+    private final TableView<Experiment> tableView = new TableView<>();
+    //создаёт объект пути к файлу в текущей рабочей директории.
+    private final ProgressBar progressBar = new javafx.scene.control.ProgressBar();
+    private ToolBar toolbar;
+    private final Label statusLabel = new javafx.scene.control.Label("Готов");
+
+    //поле которое нужно было для ранних этапов и отключено для этапа 6
+    /*private static final Path DEFAULT_XML_PATH = Path.of("data.xml"); //стандартный XML-файл, с которым приложение работает по умолчанию.*/
+
+   /* private <T> void runAsyncTask(Task<T> task, String successMessage) {
         if (currentTask != null && !currentTask.isDone()) {
             AlertUtil.showError("Предыдущая операция ещё не завершена. Подождите.");
             //Если сейчас уже идёт одна фоновая операция, вторую запускать нельзя.
@@ -78,8 +83,8 @@ public class MainApp extends Application { //приложение на осно�
         });
         new Thread(task).start();
         // мы вынесли в отдельный поток долгую операцию чтобы программа не зависала на долгой операции
-    }
-
+    }*/
+/*
     private void finishAsyncTask() {
         disableToolbarButtons(false);
         progressBar.setVisible(false);
@@ -87,21 +92,31 @@ public class MainApp extends Application { //приложение на осно�
         progressBar.progressProperty().unbind();
         statusLabel.textProperty().unbind();
         currentTask = null;
-    }
+    }*/
 
-    private void disableToolbarButtons(boolean disable) {
+    /*private void disableToolbarButtons(boolean disable) {
         // Находим тулбар (можно сохранить ссылку при создании)
         // Предположим, что сохранили в поле ToolBar toolbar;
         if (toolbar != null) {
             toolbar.getItems().forEach(node -> node.setDisable(disable));
         }
     }
-    private ToolBar toolbar; // поле класса
+    private ToolBar toolbar; // поле класса*/
 
     @Override
     public void start(Stage stage) {
-        userStorage = new UserStorage("users.json");
-        LoginDialog loginDialog = new LoginDialog(userStorage);
+        // --- Инициализация репозиториев и менеджеров ---
+        ExperimentRepository experimentRepo = new ExperimentRepository();
+        RunRepository runRepo = new RunRepository();
+        RunResultRepository resultRepo = new RunResultRepository();
+        UserRepository userRepo = new UserRepository();
+
+        experimentManager = new ExperimentManager(experimentRepo);
+        runManager = new RunManager(runRepo, experimentManager);
+        runResultManager = new RunResultManager(resultRepo, runManager);
+        UserManager userManager = new UserManager(userRepo);
+
+        LoginDialog loginDialog = new LoginDialog(userManager);
         Optional<String> loginResult = loginDialog.showAndWaitForLogin();
         if (loginResult.isEmpty()) {
             // Если окно закрыли без входа – завершаем приложение
@@ -109,11 +124,11 @@ public class MainApp extends Application { //приложение на осно�
         }
         currentUser = loginResult.get();
 
-
+        // построение UI
         BorderPane root = new BorderPane();
         configureTable();
         // статусная панель внизу
-        javafx.scene.layout.HBox statusBox = new javafx.scene.layout.HBox(10, statusLabel, progressBar);
+        HBox statusBox = new HBox(10, statusLabel, progressBar);
         statusBox.setStyle("-fx-padding: 5;");
         progressBar.setVisible(false);
         statusLabel.setVisible(false);
@@ -129,7 +144,6 @@ public class MainApp extends Application { //приложение на осно�
         stage.setScene(scene);
         stage.show();
 
-        loadDefaultFileOnStartAsync(); // загружаем асинхронно
     }
 
     private void configureTable() {
@@ -137,7 +151,8 @@ public class MainApp extends Application { //приложение на осно�
         idColumn.setCellValueFactory(cellData ->
                 new SimpleObjectProperty<>(cellData.getValue().getId()));
 //cellData – это объект типа CellDataFeatures<Experiment, Long>
-        // делаем так чтобы если name слишком длинное то был красивый перенос
+
+        // делаем так, чтобы если name слишком длинное то был красивый перенос
         TableColumn<Experiment, String> nameColumn = new TableColumn<>("Name");
         nameColumn.setCellValueFactory(cellData ->
                 new SimpleStringProperty(cellData.getValue().getName()));
@@ -208,37 +223,18 @@ public class MainApp extends Application { //приложение на осно�
         Button deleteButton = new Button("Delete");
         deleteButton.setOnAction(event -> handleDelete());
 
-        Button clearButton = new Button("Clear");
+        Button clearButton = new Button("Clear my Data");
         clearButton.setOnAction(event -> handleClear());
 
-        MenuButton saveMenuButton = new MenuButton("Save");
-        MenuItem saveItem = new MenuItem("Save");
-        saveItem.setOnAction(event -> saveDefaultFile());
-
-        MenuItem saveAsItem = new MenuItem("Save As");
-        saveAsItem.setOnAction(event -> saveAs(stage));
-
-        saveMenuButton.getItems().addAll(saveItem, saveAsItem);
-
-        MenuButton loadMenuButton = new MenuButton("Load");
-        MenuItem loadItem = new MenuItem("Load");
-        loadItem.setOnAction(event -> loadDefaultFile());
-
-        MenuItem loadFromItem = new MenuItem("Load From");
-        loadFromItem.setOnAction(event -> loadFrom(stage));
-
-        loadMenuButton.getItems().addAll(loadItem, loadFromItem);
-
-        Label userLabel = new Label("Пользователь: " + currentUser);
+        // Метка текущего пользователя
+        Label userLabel = new Label("Вы: " + currentUser);
         userLabel.setStyle("-fx-font-weight: bold;");
 
-        ToolBar toolbar = new ToolBar(
+        ToolBar bar = new ToolBar(
                 refreshButton, addButton, editButton, deleteButton, clearButton,
-                saveMenuButton, loadMenuButton,
-                new Separator(),   // разделитель
-                userLabel
+                new Separator(), userLabel
         );
-        return toolbar;
+        return bar;
     }
 
     private void handleAdd() {
@@ -256,20 +252,20 @@ public class MainApp extends Application { //приложение на осно�
     }
 
     private void handleEdit() {
-        Experiment selected = getSelectedExperimentOrShowError();
-        if (selected == null) return;
-
-        // Проверка владельца
+        Experiment selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            AlertUtil.showError("Сначала выберите эксперимент в таблице.");
+            return;
+        }
         if (!selected.getOwnerUsername().equals(currentUser)) {
             AlertUtil.showError("У вас нет прав на редактирование этого эксперимента.");
             return;
         }
-
         ExperimentDialog.ExperimentEditData data = ExperimentDialog.showEditDialog(selected);
         if (data == null) return;
-
         try {
             experimentManager.update(selected.getId(), data.name(), data.description(), currentUser);
+            refreshTable();
         } catch (Exception e) {
             AlertUtil.showError("Ошибка редактирования: " + e.getMessage());
         }
@@ -277,123 +273,43 @@ public class MainApp extends Application { //приложение на осно�
 
 
     private void handleDelete() {
-        Experiment selected = getSelectedExperimentOrShowError();
-        if (selected == null) return;
-
+        Experiment selected = tableView.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            AlertUtil.showError("Сначала выберите эксперимент в таблице.");
+            return;
+        }
         if (!selected.getOwnerUsername().equals(currentUser)) {
             AlertUtil.showError("У вас нет прав на удаление этого эксперимента.");
             return;
         }
-
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Подтверждение удаления");
         confirm.setHeaderText("Удаление эксперимента");
         confirm.setContentText("Удалить эксперимент с id = " + selected.getId() + "?");
-
-        Optional<ButtonType> result = confirm.showAndWait();
-        if (result.isEmpty() || result.get() != ButtonType.OK) {
-            return;
-        }
-
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
         try {
             experimentManager.remove(selected.getId(), currentUser);
+            refreshTable();
         } catch (Exception e) {
             AlertUtil.showError("Ошибка удаления: " + e.getMessage());
         }
     }
 
+
     private void handleClear() {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Подтверждение очистки");
-        confirm.setHeaderText("Очистка данных");
+        confirm.setHeaderText("Очистка ваших данных");
         confirm.setContentText("Удалить все ваши эксперименты, запуски и результаты?");
         if (confirm.showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
-
-        runResultManager.clearByOwner(currentUser);
-        runManager.clearByOwner(currentUser);
-        experimentManager.clearByOwner(currentUser);
-    }
-
-    private void saveDefaultFile() {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                updateMessage("Сохранение в data.xml...");
-                fileStorage.save(DEFAULT_XML_PATH);
-                updateMessage("Сохранено");
-                return null;
-            }
-        };
-        runAsyncTask(task, "Данные сохранены в data.xml");
-    }
-
-    private void saveAs(Stage stage) {
-        FileChooser fileChooser = createXmlFileChooser("Сохранить XML");
-        File file = fileChooser.showSaveDialog(stage);
-        if (file == null) return;
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                updateMessage("Сохранение в " + file.getName());
-                fileStorage.save(file.toPath());
-                updateMessage("Сохранено");
-                return null;
-            }
-        };
-        runAsyncTask(task, "Данные сохранены в файл: " + file.getAbsolutePath());
-    }
-
-    private void loadDefaultFile() {
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                updateMessage("Загрузка из data.xml...");
-                fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
-                updateMessage("Загрузка завершена");
-                return null;
-            }
-        };
-        runAsyncTask(task, "Данные загружены из data.xml. Нажмите Refresh.");
-    }
-
-    private void loadFrom(Stage stage) {
-        FileChooser fileChooser = createXmlFileChooser("Загрузить XML");
-        File file = fileChooser.showOpenDialog(stage);
-        if (file == null) return;
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                updateMessage("Загрузка из " + file.getName());
-                fileStorage.loadIntoManagers(file.toPath());
-                updateMessage("Загрузка завершена");
-                return null;
-            }
-        };
-        runAsyncTask(task, "Данные загружены из файла: " + file.getAbsolutePath() + ". Нажмите Refresh.");
-    }
-
-    private void loadDefaultFileOnStartAsync() {
-        if (!Files.exists(DEFAULT_XML_PATH)) return;
-        Task<Void> task = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-                updateMessage("Загрузка данных при старте...");
-                fileStorage.loadIntoManagers(DEFAULT_XML_PATH);
-                updateMessage("Загрузка завершена");
-                return null;
-            }
-        };
-        // Не блокируем кнопки при старте, но используем runAsyncTask
-        runAsyncTask(task,  "Данные загружены из data.xml. Нажмите Refresh.");
-    }
-
-    private FileChooser createXmlFileChooser(String title) {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle(title);
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("XML files", "*.xml")
-        );
-        return fileChooser;
+        try {
+            runResultManager.clearByOwner(currentUser);
+            runManager.clearByOwner(currentUser);
+            experimentManager.clearByOwner(currentUser);
+            refreshTable();
+        } catch (Exception e) {
+            AlertUtil.showError("Ошибка очистки: " + e.getMessage());
+        }
     }
 
     private Experiment getSelectedExperimentOrShowError() {

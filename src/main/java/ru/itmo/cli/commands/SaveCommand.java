@@ -1,4 +1,4 @@
-package ru.itmo.cli.commands;
+/*package ru.itmo.cli.commands;
 
 import ru.itmo.cli.Cli;
 import ru.itmo.storage.FileStorage;
@@ -35,4 +35,4 @@ public class SaveCommand extends BaseCommand {
             System.out.println("Ошибка сохранения: " + e.getMessage());
         }
     }
-}
+}*/

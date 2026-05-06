@@ -1,3 +1,4 @@
+/*
 package ru.itmo;
 
 import ru.itmo.model.MeasurementParam;
@@ -40,4 +41,4 @@ public class XmlStorageTest {
         System.out.println("runs = " + runManager.getAll().size());
         System.out.println("results = " + runResultManager.getAll().size());
     }
-}
+}*/

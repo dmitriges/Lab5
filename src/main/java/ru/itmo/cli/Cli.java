@@ -1,11 +1,14 @@
 package ru.itmo.cli;
 
 import ru.itmo.cli.commands.*;
+import ru.itmo.repository.ExperimentRepository;
+import ru.itmo.repository.RunRepository;
+import ru.itmo.repository.RunResultRepository;
+import ru.itmo.repository.UserRepository;
 import ru.itmo.services.*;
 
 import java.util.Scanner;
-import ru.itmo.storage.FileStorage;
-import ru.itmo.storage.UserStorage;
+
 
 
 public class Cli {
@@ -14,22 +17,40 @@ public class Cli {
     private boolean running = true;
     // Флаг, управляющий работой главного цикла. Пока true программа принимает команды.
 
-    // для этапа 5
+
+    // Данные пользователя (null, пока не выполнен вход)
+    private String currentUser = null;
+
+   /* // для этапа 5
     private final UserStorage userStorage;
-    private String currentUser = null;   // null означает "не авторизован"
+    private String currentUser = null;   // null означает "не авторизован"*/
+
+// ДЛЯ ЭТАПА 6 ЗАМЕНЯЕТСЯ НА
+    // Менеджер пользователей (работает с БД через UserRepository)
+    private final UserManager userManager;
 
     public Cli() {
-        // Инициализация менеджеров
-        ExperimentManager experimentManager = new ExperimentManager();
-        RunManager runManager = new RunManager(experimentManager);
-        RunResultManager runResultManager = new RunResultManager(runManager);
+
+        // для этапа 6 создаем поля классов которые сделали
+        ExperimentRepository experimentRepo = new ExperimentRepository();
+        RunRepository runRepo = new RunRepository();
+        RunResultRepository resultRepo = new RunResultRepository();
+        UserRepository userRepo = new UserRepository();
+
+
+        // --- Создаём менеджеры, внедряя в них репозитории ---
+        ExperimentManager experimentManager = new ExperimentManager(experimentRepo);
+        RunManager runManager = new RunManager(runRepo, experimentManager);
+        RunResultManager runResultManager = new RunResultManager(resultRepo, runManager);
         SummaryManager summaryManager = new SummaryManager(experimentManager, runManager, runResultManager);
-        FileStorage fileStorage = new FileStorage(experimentManager, runManager, runResultManager);
 
-        //для этапа 5
+        /*//для этапа 5
         // Хранилище пользователей (файл users.json в текущей папке)
-        this.userStorage = new UserStorage("users.json");
+        this.userStorage = new UserStorage("users.json");*/
 
+// ДЛЯ ЭТАПА 6 ЗАМЕНЯЕТСЯ НА
+        // Менеджер пользователей
+        this.userManager = new UserManager(userRepo);
         // Реестр команд
         //Каждая команда получает необходимые ей зависимости
         registry = new CommandRegistry();
@@ -53,16 +74,17 @@ public class Cli {
         registry.register("res_add", new ResAddCommand(runResultManager, runManager, this));
         registry.register("res_list", new ResListCommand(runResultManager));
         registry.register("exp_summary", new ExpSummaryCommand(summaryManager));
-        registry.register("save", new SaveCommand(fileStorage, this));
-        registry.register("load", new LoadCommand(fileStorage));
+/*        registry.register("save", new SaveCommand(fileStorage, this));
+        registry.register("load", new LoadCommand(fileStorage));*/ //ОТКЛЮЧАЮТСЯ ДЛЯ 6 ЭТАПА
         registry.register("logout", new LogoutCommand(this));
         registry.register("clear", new ClearCommand(experimentManager, runManager, runResultManager, this));
+
         scanner = new Scanner(System.in);
         //Создание Scanner для последующего чтения ввода.
 
-        // Новые команды для этапа 5 + геттеры сеттеры
-        registry.register("register", new RegisterCommand(userStorage));
-        registry.register("login", new LoginCommand(this, userStorage));
+        // Новые команды для этапа 5 + геттеры сеттеры UPD для 6 этапа теперь через юзер менеджера для удобства
+        registry.register("register", new RegisterCommand(userManager));
+        registry.register("login", new LoginCommand(this, userManager));
     }
     public String getCurrentUser() {
         return currentUser;

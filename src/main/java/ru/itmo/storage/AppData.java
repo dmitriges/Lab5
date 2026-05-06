@@ -1,3 +1,4 @@
+/*
 package ru.itmo.storage;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
@@ -60,4 +61,4 @@ public class AppData {
     public void setResults(List<RunResult> results) {
         this.results = results != null ? results : new ArrayList<>();
     }
-}
+}*/

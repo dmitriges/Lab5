@@ -1,4 +1,6 @@
+/*
 package ru.itmo.storage;
+*/
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -9,7 +11,7 @@ import ru.itmo.ui.util.PasswordHasher;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-
+// НУЖЕН ДЛЯ ЭТАПА 5 НО ПОЛНОСТЬЮ ОТКЛЮЧАЕТСЯ НА ЭТАПЕ 6 И ЗАМЕНЯЕТСЯ НА USERMANAGER.
 
 //хранение списка зарегистрированных пользователей в оперативной памяти,
 //
@@ -20,7 +22,7 @@ import java.util.*;
 //регистрация нового пользователя с проверкой уникальности логина и хеширование пароля,
 //
 //аутентификация (проверка пары логин/пароль).
-
+/*
 
 public class UserStorage {
     private final File file;
@@ -29,50 +31,54 @@ public class UserStorage {
     private final ObjectMapper mapper;
     // для преобразования списка в json и обратно
 
-    private final Map<String, User> usersByLogin = new HashMap<>();
+    private final Map<String, User> usersByLogin = new HashMap<>();*/
     // поиск пользователя по логину
 
 
      // @param filePath путь к файлу users.json
-
+/*
     public UserStorage(String filePath) {
-        this.file = new File(filePath);
+        this.file = new File(filePath);*/
         //Получает путь к файлу, создаёт объект File.
+/*
 
         this.mapper = new ObjectMapper();
+*/
 
         //Файл JSON будет содержать отступы и переносы строк, чтобы его удобно было читать
-        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    /*    mapper.enable(SerializationFeature.INDENT_OUTPUT);
         load();
-    }
+    }*/
 
     //Загружает пользователей из файла. Если файл отсутствует или пуст – остаёмся с пустым списком.
-    private void load() {
+ /*   private void load() {
         if (!file.exists()) {
             return;
         }
-        try {
+        try {*/
 // !!!!!после компиляции в байт-коде вся информация о типе-параметре исчезает
 // Решение - сложная система:
 // создаем анонимный класс
 
 //информация о классе родителя сохраняется даже в байт коде,
 // поэтому метод getGenericSuperclass() внутри TypeReference может извлечь тип аргумента после стирания
-            List<User> userList = mapper.readValue(file, new TypeReference<List<User>>() {});
+        /*    List<User> userList = mapper.readValue(file, new TypeReference<List<User>>() {});
             for (User user : userList) {
                 usersByLogin.put(user.getLogin(), user);
             }
         } catch (IOException e) {
             System.err.println("Предупреждение: не удалось загрузить файл пользователей. "
                     + "Работаем с пустым списком. Ошибка: " + e.getMessage());
-            // Не прерываем выполнение, чтобы программа могла стартовать
+            // Не прерываем выполнение, чтобы программа могла стартовать*/
+/*
         }
     }
+*/
 
 
     //Сохраняет текущий список пользователей в файл.
 
-    private void save() {
+   /* private void save() {
         try {
             List<User> userList = new ArrayList<>(usersByLogin.values());
             // делаем список из юзеров
@@ -82,11 +88,11 @@ public class UserStorage {
             throw new RuntimeException("Не удалось сохранить файл пользователей: " + e.getMessage(), e);
         }
     }
-
+*/
     //
      //Регистрирует нового пользователя + валидация
 
-    public void register(String login, String password) {
+  /*  public void register(String login, String password) {
         validateLogin(login);
         validatePassword(password);
 
@@ -99,10 +105,10 @@ public class UserStorage {
         usersByLogin.put(login, user);
         save();
     }
-
+*/
 
 // аутентификация
-    public User authenticate(String login, String password) {
+   /* public User authenticate(String login, String password) {
         validateLogin(login);
         validatePassword(password);
 
@@ -116,9 +122,9 @@ public class UserStorage {
         }
         return user;
     }
-
+*/
  //чтобы быстро проверить, занят ли логин, не вызывая исключений
-    public boolean exists(String login) {
+   /* public boolean exists(String login) {
         return usersByLogin.containsKey(login);
     }
 
@@ -145,4 +151,4 @@ public class UserStorage {
             throw new IllegalArgumentException("Пароль должен содержать минимум 4 символа");
         }
     }
-}
+}*/

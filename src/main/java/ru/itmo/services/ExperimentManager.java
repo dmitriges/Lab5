@@ -1,37 +1,59 @@
 package ru.itmo.services;
 
 import ru.itmo.model.Experiment;
+import ru.itmo.repository.ExperimentRepository;
+
+import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 
-public class ExperimentManager {
-    private final TreeMap<Long, Experiment> experiments = new TreeMap<>();
-    private long nextId = 1;
 
-    private long generateId() {
-        return nextId++;
+public class ExperimentManager {
+    private final TreeMap<Long, Experiment> cache  = new TreeMap<>();
+    private final ExperimentRepository repository;
+
+    public ExperimentManager(ExperimentRepository repository) {
+        this.repository = repository;
+        loadAll();
     }
 
+    public void loadAll() {
+        try {
+            List<Experiment> all = repository.findAll();
+            cache.clear();
+            for (Experiment exp : all) {
+                cache.put(exp.getId(), exp);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка загрузки экспериментов из БД", e);
+        }
+    }
+
+    // Добавление нового эксперимента
     public Experiment add(String name, String description, String ownerUsername) {
-        // Если ownerUsername не задан, используем "SYSTEM"
-        String owner = (ownerUsername == null || ownerUsername.isBlank()) ? "SYSTEM" : ownerUsername;
-        long id = generateId();
         Instant now = Instant.now();
-        Experiment exp = new Experiment(id, now);
-        exp.setName(name);
-        exp.setDescription(description);
-        exp.setOwnerUsername(owner);
-        experiments.put(id, exp);
-        return exp;
+        // Создаём объект без id, временный, айди задаст БД
+        Experiment temp = new Experiment(0, name, description, ownerUsername, now, now);
+        try {
+            // отправляем запрос в бд
+            long id = repository.save(temp);
+            // Создаём объект с реальным id
+            Experiment created = new Experiment(id, name, description, ownerUsername, now, now);
+            cache.put(id, created);
+            return created;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при добавлении эксперимента", e);
+        }
     }
 
     public Experiment getById(long id) {
-        Experiment exp = experiments.get(id);
+        Experiment exp = cache.get(id);
         if (exp == null) {
             throw new NoSuchElementException("Experiment не найден: id=" + id);
         }
         return exp;
     }
+
 
     // метод для этапа 5, проверка владельца
     public void ensureOwnership(long experimentId, String username) {
@@ -41,57 +63,50 @@ public class ExperimentManager {
         }
     }
 
-
-    // принимает лист загруженных экспериментов
-    public void importData(java.util.List<Experiment> loadedExperiments) {
-        experiments.clear();
-        // очищает текущее значение поля experiment в experimentManager
-
-        //
-        long maxId = 0;
-        for (Experiment experiment : loadedExperiments) {
-            experiments.put(experiment.getId(), experiment);
-            if (experiment.getId() > maxId) {
-                maxId = experiment.getId();
-            }
-        }
-
-        nextId = maxId + 1;
-    }
-
     public List<Experiment> getAll() {
-        return new ArrayList<>(experiments.values());
+        return new ArrayList<>(cache.values());
     }
 
-
-    public java.util.Map<Long, Experiment> exportData() {
-        return new java.util.TreeMap<>(experiments);
-    }
-
+    // Обновление эксперимента
     public Experiment update(long id, String newName, String newDescription, String requester) {
         ensureOwnership(id, requester);
         Experiment exp = getById(id);
         if (newName != null) exp.setName(newName);
         if (newDescription != null) exp.setDescription(newDescription);
-        return exp;
-    }
-
-    public void remove(long id, String requester) {
-        ensureOwnership(id, requester);
-        if (experiments.remove(id) == null) {
-            throw new NoSuchElementException("Experiment не найден: id=" + id);
+        try {
+            repository.update(exp);  // обновление в БД (updated_at уже обновлён сеттером)
+            cache.put(id, exp);     // обновляем кэш
+            return exp;
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при обновлении эксперимента", e);
         }
     }
 
+    // Удаление эксперимента (каскадное удаление запусков и результатов происходит в БД)
+    public void remove(long id, String requester) {
+        ensureOwnership(id, requester);
+        try {
+            repository.deleteById(id); // надо удалить и из бд и из кеша
+            cache.remove(id);
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при удалении эксперимента", e);
+        }
+    }
+
+    // Очистка всех экспериментов владельца
     public void clearByOwner(String ownerUsername) {
-        experiments.values().removeIf(exp -> exp.getOwnerUsername() != null && exp.getOwnerUsername().equals(ownerUsername));
+        try {
+            repository.deleteByOwner(ownerUsername);
+            // Удаляем из кэша
+            cache.values().removeIf(exp -> exp.getOwnerUsername().equals(ownerUsername));
+        } catch (SQLException e) {
+            throw new RuntimeException("Ошибка при очистке экспериментов", e);
+        }
     }
 
     public boolean exists(long id) {
-        return experiments.containsKey(id);
+        return cache.containsKey(id);
     }
-
-
     public String getOwner(long experimentId) {
         Experiment exp = getById(experimentId);   // выбросит NoSuchElementException, если не найден
         return exp.getOwnerUsername();

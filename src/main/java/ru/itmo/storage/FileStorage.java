@@ -1,4 +1,4 @@
-package ru.itmo.storage;
+/*package ru.itmo.storage;
 
 import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
@@ -38,7 +38,8 @@ public class FileStorage {
         experimentManager.importData(data.getExperiments());
         runManager.importData(data.getRuns());
         runResultManager.importData(data.getResults());
-    }
+    }*/
+/*
 
     public void save(Path path) throws IOException {
         AppData data = new AppData(
@@ -52,3 +53,4 @@ public class FileStorage {
         // теперь строку xml приводим к типу объекта класса AppData
     }
 }
+*/

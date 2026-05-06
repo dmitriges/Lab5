@@ -8,7 +8,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import ru.itmo.storage.UserStorage;
+import ru.itmo.services.UserManager;
 
 import java.util.Optional;
 
@@ -18,13 +18,13 @@ import java.util.Optional;
 
 public class LoginDialog extends Stage {
 
-    private final UserStorage userStorage;
+    private final UserManager userStorage;
     private TextField loginField;
     private PasswordField passwordField;
     private Label messageLabel;
     private String loggedInUser = null;
 
-    public LoginDialog(UserStorage userStorage) {
+    public LoginDialog(UserManager userStorage) {
         this.userStorage = userStorage;
         setTitle("Вход в систему");
         initModality(Modality.APPLICATION_MODAL);
