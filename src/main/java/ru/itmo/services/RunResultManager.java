@@ -3,6 +3,7 @@ package ru.itmo.services;
 import ru.itmo.model.MeasurementParam;
 import ru.itmo.model.RunResult;
 import ru.itmo.repository.RunResultRepository;
+import ru.itmo.sync.DatabaseChangeNotifier;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -20,7 +21,7 @@ public class RunResultManager {
         loadAll();
     }
 
-    private void loadAll() {
+    public synchronized void loadAll() {
         try {
             List<RunResult> all = repository.findAll();
             cache.clear();
@@ -32,7 +33,7 @@ public class RunResultManager {
         }
     }
 
-    public RunResult add(long runId, MeasurementParam param, double value, String unit,
+    public synchronized RunResult add(long runId, MeasurementParam param, double value, String unit,
                          String comment, String ownerUsername) {
         if (!runManager.exists(runId)) {
             throw new NoSuchElementException("Run не найден: id=" + runId);
@@ -49,6 +50,7 @@ public class RunResultManager {
             long id = repository.save(temp);
             RunResult created = new RunResult(id, now, runId, param, value, unit, safeComment, ownerUsername);
             cache.put(id, created);
+            DatabaseChangeNotifier.publishChange();
             return created;
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при добавлении результата", e);
@@ -56,13 +58,13 @@ public class RunResultManager {
     }
 
 
-    public void ensureOwnership(long resultId, String requester) {
+    public synchronized void ensureOwnership(long resultId, String requester) {
         RunResult rr = getById(resultId);
         if (!rr.getOwnerUsername().equals(requester)) {
             throw new SecurityException("У вас нет прав на изменение этого результата.");
         }
     }
-    public RunResult getById(long id) {
+    public synchronized RunResult getById(long id) {
         RunResult rr = cache.get(id);
         if (rr == null) {
             throw new NoSuchElementException("RunResult не найден: id=" + id);
@@ -70,35 +72,36 @@ public class RunResultManager {
         return rr;
     }
 
-    public List<RunResult> getAll() {
+    public synchronized List<RunResult> getAll() {
         return new ArrayList<>(cache.values());
     }
 
 
-    public void remove(long id, String requester) {
+    public synchronized void remove(long id, String requester) {
         ensureOwnership(id, requester);
         try {
             repository.deleteById(id);
             cache.remove(id);
+            DatabaseChangeNotifier.publishChange();
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при удалении результата", e);
         }
     }
 
-    public List<RunResult> listByRun(long runId) {
+    public synchronized List<RunResult> listByRun(long runId) {
         return cache.values().stream()
                 .filter(r -> r.getRunId() == runId)
                 .collect(Collectors.toList());
     }
 
-    public List<RunResult> listByRunAndParam(long runId, MeasurementParam param) {
+    public synchronized List<RunResult> listByRunAndParam(long runId, MeasurementParam param) {
         return cache.values().stream()
                 .filter(r -> r.getRunId() == runId)
                 .filter(r -> r.getParam() == param)
                 .collect(Collectors.toList());
     }
 
-    public RunResult update(long resultId, MeasurementParam param, Double value,
+    public synchronized RunResult update(long resultId, MeasurementParam param, Double value,
                             String unit, String comment, String requester) {
         ensureOwnership(resultId, requester);
         RunResult runResult = getById(resultId);
@@ -109,16 +112,18 @@ public class RunResultManager {
         try {
             repository.update(runResult);
             cache.put(resultId, runResult);
+            DatabaseChangeNotifier.publishChange();
             return runResult;
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при обновлении результата", e);
         }
     }
 
-    public void clearByOwner(String owner) {
+    public synchronized void clearByOwner(String owner) {
         try {
             repository.deleteByOwner(owner);
             cache.values().removeIf(runResult -> runResult.getOwnerUsername().equals(owner));
+            DatabaseChangeNotifier.publishChange();
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при очистке результатов", e);
         }

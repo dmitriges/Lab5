@@ -8,6 +8,9 @@
   "login" : "alice",
   "passwordHash" : "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4"
 }, {
+  "login" : "egor",
+  "passwordHash" : "1718c24b10aeb8099e3fc44960ab6949ab76a267352459f203ea1036bec382c2"
+}, {
   "login" : "KeijoFan",
   "passwordHash" : "45992fb47f101d0d7e508bcd1533b8e21055c7317eb7637ce27b2ca297358252"
 } ]

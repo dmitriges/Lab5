@@ -16,6 +16,11 @@
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.2</version>
+        </dependency>
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -76,51 +81,30 @@
                 </configuration>
             </plugin>
 
-
-            <!--shade-плагин объединяет все зависимости в один JAR. Чтобы другие проекты,
-            которые могли бы использовать вашу библиотеку, не подтягивали повторно те же библиотеки,
-            плагин генерирует «урезанный» POM, в котором перечислены только зависимости, не включённые внутрь fat JAR.-->
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.1</version>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>Main</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
                 <executions>
                     <execution>
+                        <id>make-assembly</id>
                         <phase>package</phase>
                         <goals>
-                            <goal>shade</goal>
+                            <goal>single</goal>
                         </goals>
-                        <configuration>
-                            <!-- Указываем главный класс -->
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>ru.itmo.ui.MainApp</mainClass>
-                                </transformer>
-                                <!-- Важнейший трансформер для объединения сервисов JavaFX -->
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
-                            </transformers>
-                            <!-- Избегаем упаковки подписанных JAR, которые могут вызвать SecurityException -->
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
-            <!--ManifestResourceTransformer – вписывает Main-Class в манифест.
-
-ServicesResourceTransformer – объединяет все файлы сервисов
- (например, META-INF/services/javafx.application.Application), чтобы JavaFX смогла найти ваш класс приложения и свои внутренние службы.
-<filters> – убирает цифровые подписи из загружаемых JAR’ов, иначе при запуске будет SecurityException: Invalid signature file digest.
-            -->
 
         </plugins>
     </build>

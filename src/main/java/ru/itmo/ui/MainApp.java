@@ -1,6 +1,7 @@
 package ru.itmo.ui;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.concurrent.Task;
@@ -20,6 +21,7 @@ import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
 import ru.itmo.services.RunResultManager;
 import ru.itmo.services.UserManager;
+import ru.itmo.sync.DatabaseChangeNotifier;
 import ru.itmo.ui.util.AlertUtil;
 import java.io.File;
 import java.nio.file.Files;
@@ -30,6 +32,7 @@ import java.util.Optional;
 import static javafx.collections.FXCollections.observableArrayList;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Alert;
+import ru.itmo.config.DatabaseInitializer;
 
 public class MainApp extends Application { //приложение на основе java-fx
 
@@ -37,6 +40,7 @@ public class MainApp extends Application { //приложение на осно�
     private ExperimentManager experimentManager;
     private RunManager runManager;
     private RunResultManager runResultManager;
+    private DatabaseChangeNotifier databaseChangeNotifier;
 
     // Текущий пользователь (логин)
     private String currentUser;
@@ -106,6 +110,8 @@ public class MainApp extends Application { //приложение на осно�
     @Override
     public void start(Stage stage) {
         // --- Инициализация репозиториев и менеджеров ---
+        DatabaseInitializer.initialize();
+
         ExperimentRepository experimentRepo = new ExperimentRepository();
         RunRepository runRepo = new RunRepository();
         RunResultRepository resultRepo = new RunResultRepository();
@@ -143,6 +149,7 @@ public class MainApp extends Application { //приложение на осно�
         stage.setTitle("Experiment Manager");
         stage.setScene(scene);
         stage.show();
+        startRealtimeSync();
 
     }
 
@@ -329,6 +336,31 @@ public class MainApp extends Application { //приложение на осно�
         tableView.setItems(observableArrayList(experiments));// tableView принимает ObservableList,
         // делаем его на основе наших experiments
         tableView.refresh();
+    }
+
+    private void startRealtimeSync() {
+        databaseChangeNotifier = new DatabaseChangeNotifier(() ->
+                Platform.runLater(this::reloadDataFromDatabase)
+        );
+        databaseChangeNotifier.start();
+    }
+
+    private void reloadDataFromDatabase() {
+        try {
+            experimentManager.loadAll();
+            runManager.loadAll();
+            runResultManager.loadAll();
+            refreshTable();
+        } catch (RuntimeException e) {
+            System.err.println("Realtime refresh error: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void stop() {
+        if (databaseChangeNotifier != null) {
+            databaseChangeNotifier.close();
+        }
     }
 
     public static void main(String[] args) {

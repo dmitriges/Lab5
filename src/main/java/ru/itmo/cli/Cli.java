@@ -1,6 +1,7 @@
 package ru.itmo.cli;
 
 import ru.itmo.cli.commands.*;
+import ru.itmo.config.DatabaseInitializer;
 import ru.itmo.repository.ExperimentRepository;
 import ru.itmo.repository.RunRepository;
 import ru.itmo.repository.RunResultRepository;
@@ -32,6 +33,8 @@ public class Cli {
     public Cli() {
 
         // для этапа 6 создаем поля классов которые сделали
+        DatabaseInitializer.initialize();
+
         ExperimentRepository experimentRepo = new ExperimentRepository();
         RunRepository runRepo = new RunRepository();
         RunResultRepository resultRepo = new RunResultRepository();

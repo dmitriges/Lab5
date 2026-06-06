@@ -2,6 +2,7 @@ package ru.itmo.services;
 
 import ru.itmo.model.Run;
 import ru.itmo.repository.RunRepository;
+import ru.itmo.sync.DatabaseChangeNotifier;
 
 import java.sql.SQLException;
 import java.time.Instant;
@@ -20,7 +21,7 @@ public class RunManager {
         loadAll();
     }
 
-    private void loadAll() {
+    public synchronized void loadAll() {
         try {
             List<Run> all = repository.findAll();
             cache.clear();
@@ -36,7 +37,7 @@ public class RunManager {
 //Принимает ID эксперимента, название запуска и имя оператора.
 // Проверяет, что эксперимент существует, создаёт новый запуск с текущим временем и возвращает его.
 
-    public Run add(long experimentId, String runName, String operatorName, String ownerUsername) {
+    public synchronized Run add(long experimentId, String runName, String operatorName, String ownerUsername) {
         if (!experimentManager.exists(experimentId)) {
             throw new NoSuchElementException("Experiment не найден: id=" + experimentId);
         }
@@ -52,6 +53,7 @@ public class RunManager {
             long id = repository.save(temp);
             Run created = new Run(id, experimentId, now, runName, operatorName, ownerUsername);
             cache.put(id, created);
+            DatabaseChangeNotifier.publishChange();
             return created;
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при добавлении запуска", e);
@@ -60,13 +62,13 @@ public class RunManager {
 
 
 
-    public Run getById(long id) {
+    public synchronized Run getById(long id) {
         Run run = cache.get(id);
         if (run == null) throw new NoSuchElementException("Run не найден: id=" + id);
         return run;
     }
 
-    public void ensureOwnership(long runId, String requester) {
+    public synchronized void ensureOwnership(long runId, String requester) {
         Run run = getById(runId);
         if (!run.getOwnerUsername().equals(requester)) {
             throw new SecurityException("У вас нет прав на изменение этого запуска.");
@@ -74,16 +76,17 @@ public class RunManager {
     }
 
 //Возвращает список всех запусков (порядок по ID).
-    public List<Run> getAll() {
+    public synchronized List<Run> getAll() {
         return new ArrayList<>(cache.values());
     }
 
 
-    public void remove(long id, String requester) {
+    public synchronized void remove(long id, String requester) {
         ensureOwnership(id, requester);
         try {
             repository.deleteById(id);
             cache.remove(id);
+            DatabaseChangeNotifier.publishChange();
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при удалении запуска", e);
         }
@@ -91,13 +94,13 @@ public class RunManager {
 
 
 // containsKey - метод из treeMap
-    public boolean exists(long id) {
+    public synchronized boolean exists(long id) {
         return cache.containsKey(id);
     }
 
 
     //Возвращает все запуски, принадлежащие указанному эксперименту.
-    public List<Run> listByExperiment(long experimentId) {
+    public synchronized List<Run> listByExperiment(long experimentId) {
         return cache.values().stream()
                 .filter(r -> r.getExperimentId() == experimentId)
                 .collect(Collectors.toList());
@@ -106,7 +109,7 @@ public class RunManager {
 
 
     //Возвращает последние n запусков эксперимента (сортировка по убыванию даты создания)
-    public List<Run> listLastByExperiment(long experimentId, int n) {
+    public synchronized List<Run> listLastByExperiment(long experimentId, int n) {
         if (n <= 0) return List.of();// если запросил 0 или меньше последних - возвращаем пустой лист
         return cache.values().stream()
                 // получаем коллекцию всех объектов Run, хранящихся в TreeMap, и создаём из неё поток (stream).
@@ -118,7 +121,7 @@ public class RunManager {
                 .collect(Collectors.toList());
     }
 
-    public Run update(long runId, String name, String operatorName, String requester) {
+    public synchronized Run update(long runId, String name, String operatorName, String requester) {
         ensureOwnership(runId, requester);
         Run run = getById(runId);
         if (name != null) run.setName(name);
@@ -126,6 +129,7 @@ public class RunManager {
         try {
             repository.update(run);
             cache.put(runId, run);
+            DatabaseChangeNotifier.publishChange();
             return run;
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при обновлении запуска", e);
@@ -133,10 +137,11 @@ public class RunManager {
     }
 
 
-    public void clearByOwner(String owner) {
+    public synchronized void clearByOwner(String owner) {
         try {
             repository.deleteByOwner(owner);
             cache.values().removeIf(run -> run.getOwnerUsername().equals(owner));
+            DatabaseChangeNotifier.publishChange();
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при очистке запусков", e);
         }
