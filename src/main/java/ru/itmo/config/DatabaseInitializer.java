@@ -3,7 +3,7 @@ package ru.itmo.config;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
+// для того чтобы не нужно было заходить в pgAdmin создавать таблицу при запуске с другого устройства
 public final class DatabaseInitializer {
     private static final String CREATE_USERS = """
             CREATE TABLE IF NOT EXISTS users (
@@ -48,9 +48,10 @@ public final class DatabaseInitializer {
             """;
 
     private DatabaseInitializer() {
-    }
+    }// чтобы не создавать объекты извне
 
     public static void initialize() {
+        //  try-with-resources
         try (Connection connection = DatabaseConfig.getConnection();
              Statement statement = connection.createStatement()) {
             statement.execute(CREATE_USERS);

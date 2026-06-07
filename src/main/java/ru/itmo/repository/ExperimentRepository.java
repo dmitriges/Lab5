@@ -24,6 +24,8 @@ public class ExperimentRepository {
 
         // специальная форма try закрывает ресурсы после выхода из блока
         // ресурсы - классы реализующие интерфейс AutoCloseable или Сloseable
+        //Ресурс — это объект, который после использования нужно явно освободить,
+        // потому что он занимает системные ресурсы (память, файловые дескрипторы, сетевые соединения).
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             // Перегруженная версия prepareStatement, где первый параметр, как обычно,

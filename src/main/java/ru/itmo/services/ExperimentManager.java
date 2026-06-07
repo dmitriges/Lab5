@@ -41,14 +41,14 @@ public class ExperimentManager {
             // Создаём объект с реальным id
             Experiment created = new Experiment(id, name, description, ownerUsername, now, now);
             cache.put(id, created);
-            DatabaseChangeNotifier.publishChange();
+            DatabaseChangeNotifier.publishChange(); // ДОП
             return created;
         } catch (SQLException e) {
             throw new RuntimeException("Ошибка при добавлении эксперимента", e);
         }
     }
 
-    public synchronized Experiment getById(long id) {
+    public synchronized Experiment getById(long id) { // ДОП СТАЛ СИНХРОНАЙЗД
         Experiment exp = cache.get(id);
         if (exp == null) {
             throw new NoSuchElementException("Experiment не найден: id=" + id);

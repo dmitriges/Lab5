@@ -21,7 +21,7 @@ import ru.itmo.services.ExperimentManager;
 import ru.itmo.services.RunManager;
 import ru.itmo.services.RunResultManager;
 import ru.itmo.services.UserManager;
-import ru.itmo.sync.DatabaseChangeNotifier;
+import ru.itmo.sync.DatabaseChangeNotifier; // ДОП
 import ru.itmo.ui.util.AlertUtil;
 import java.io.File;
 import java.nio.file.Files;
@@ -32,7 +32,7 @@ import java.util.Optional;
 import static javafx.collections.FXCollections.observableArrayList;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Alert;
-import ru.itmo.config.DatabaseInitializer;
+import ru.itmo.config.DatabaseInitializer; // ДОП
 
 public class MainApp extends Application { //приложение на основе java-fx
 
@@ -40,7 +40,7 @@ public class MainApp extends Application { //приложение на осно�
     private ExperimentManager experimentManager;
     private RunManager runManager;
     private RunResultManager runResultManager;
-    private DatabaseChangeNotifier databaseChangeNotifier;
+    private DatabaseChangeNotifier databaseChangeNotifier; // ДОП
 
     // Текущий пользователь (логин)
     private String currentUser;
@@ -111,6 +111,7 @@ public class MainApp extends Application { //приложение на осно�
     public void start(Stage stage) {
         // --- Инициализация репозиториев и менеджеров ---
         DatabaseInitializer.initialize();
+// ДОП
 
         ExperimentRepository experimentRepo = new ExperimentRepository();
         RunRepository runRepo = new RunRepository();
@@ -149,7 +150,7 @@ public class MainApp extends Application { //приложение на осно�
         stage.setTitle("Experiment Manager");
         stage.setScene(scene);
         stage.show();
-        startRealtimeSync();
+        startRealtimeSync(); // ДОП
 
     }
 
@@ -329,15 +330,16 @@ public class MainApp extends Application { //приложение на осно�
     }
 
     private void refreshTable() {
+        // Перезагружаем кэш экспериментов из БД
+        experimentManager.loadAll();
+
         List<Experiment> experiments = experimentManager.getAll().stream()
                 .sorted(Comparator.comparingLong(Experiment::getId))
                 .toList();
-
-        tableView.setItems(observableArrayList(experiments));// tableView принимает ObservableList,
-        // делаем его на основе наших experiments
+        tableView.setItems(javafx.collections.FXCollections.observableArrayList(experiments));
         tableView.refresh();
     }
-
+    // ДОП МЕТОДЫ
     private void startRealtimeSync() {
         databaseChangeNotifier = new DatabaseChangeNotifier(() ->
                 Platform.runLater(this::reloadDataFromDatabase)

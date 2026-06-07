@@ -12,13 +12,21 @@ public final class DatabaseConfig {
     // поле хранит загруженные параметры, удобные методы, хранит пару ключ значение
     // хэшмап не имеет необходимых методов и их бы пришлось писать самим
 
+
+    //Вся инициализация происходит до того, как какой-либо метод вызовет getConnection().
+    // Мы гарантируем, что при первом же подключении:
+    //Настройки уже прочитаны.
+    //Драйвер уже зарегистрирован.
+    //Без статического блока пришлось бы вызывать эти действия в каждом методе,
+    // либо создавать объект DatabaseConfig и вызывать init() вручную, что менее удобно и чревато ошибками.
     static { // читаем файл регистрируем драйвер далее
-        try (InputStream is = DatabaseConfig.class.getResourceAsStream("/database.properties")) {
-            if (is == null) {
+        try (InputStream inputStream = DatabaseConfig.class.getResourceAsStream("/database.properties")) {
+            if (inputStream == null) {
                 throw new RuntimeException("Файл database.properties не найден в ресурсах");
             }
-            props.load(is);
+            props.load(inputStream);
             // Загружаем драйвер PostgreSQL
+
             Class.forName("org.postgresql.Driver"); // загружает класс в память JVM.
             // существует автоматическая загрузка но могут возникнуть проблемы при создании fat jar
         } catch (IOException | ClassNotFoundException e) {
